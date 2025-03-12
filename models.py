@@ -6,13 +6,18 @@ import torch.nn.functional as F
 import torch.nn.init as init
 import numpy as np
 import types
-from attention.SEAttention import SEAttention
-from attention.SKAttention import SKAttention
 from network.cls_hrnet import *
 
-# 新增导入
+# 核心组件导入
 from einops import rearrange
 from torch.nn.parameter import Parameter
+from network.dct_transform import DCTTransform, MultiScaleFrequencyExtractor
+from network.enhanced_hrnet import EnhancedHRNet
+from attention.ForensicAttentionFusion import (
+    ForensicAttentionFusion, CoordinateAttention, 
+    FrequencyAwareAttention, SelfMutualAttention, 
+    BoundaryEnhancedAttention
+)
 
 
 # 增强的Filter模块 - 添加自适应频域过滤
@@ -108,203 +113,95 @@ class SpatialPyramidAttention(nn.Module):
         return x * attn_mask
 
 
-# 自注意力模块 - 捕捉全局上下文
-class SelfAttention(nn.Module):
-    def __init__(self, in_channels, reduction_ratio=8):
-        super(SelfAttention, self).__init__()
-        self.query = nn.Conv2d(in_channels, in_channels // reduction_ratio, kernel_size=1)
-        self.key = nn.Conv2d(in_channels, in_channels // reduction_ratio, kernel_size=1)
-        self.value = nn.Conv2d(in_channels, in_channels, kernel_size=1)
-        self.gamma = nn.Parameter(torch.zeros(1))
-        self.softmax = nn.Softmax(dim=-1)
-        
-    def forward(self, x):
-        batch_size, C, height, width = x.size()
-        
-        # 生成查询、键、值
-        proj_query = self.query(x).view(batch_size, -1, height * width).permute(0, 2, 1)  # B x (H*W) x C'
-        proj_key = self.key(x).view(batch_size, -1, height * width)  # B x C' x (H*W)
-        
-        # 计算注意力图
-        energy = torch.bmm(proj_query, proj_key)  # B x (H*W) x (H*W)
-        attention = self.softmax(energy)
-        
-        # 加权聚合值
-        proj_value = self.value(x).view(batch_size, -1, height * width)  # B x C x (H*W)
-        out = torch.bmm(proj_value, attention.permute(0, 2, 1))
-        out = out.view(batch_size, C, height, width)
-        
-        # 残差连接
-        out = self.gamma * out + x
-        return out
-
-
 # 改进的FAD_Head - 多频段自适应分析
 class EnhancedFADHead(nn.Module):
     def __init__(self, size, use_attention=True):
         super(EnhancedFADHead, self).__init__()
 
-        # DCT矩阵 - 用于频域变换
-        self._DCT_all = nn.Parameter(torch.tensor(DCT_mat(size)).float(), requires_grad=False)
-        self._DCT_all_T = nn.Parameter(torch.transpose(torch.tensor(DCT_mat(size)).float(), 0, 1), requires_grad=False)
-
-        # 划分更多频段，增强频域分析能力
-        self.low_filter = EnhancedFilter(size, 0, size // 8, adaptive=True)
-        self.mid_low_filter = EnhancedFilter(size, size // 8, size // 4, adaptive=True)
-        self.mid_high_filter = EnhancedFilter(size, size // 4, size // 2, adaptive=True)
-        self.high_filter = EnhancedFilter(size, size // 2, size, adaptive=True)
-        self.all_filter = EnhancedFilter(size, 0, size * 2, adaptive=False)
-
-        # 使用注意力机制处理频域特征
-        self.use_attention = use_attention
-        if use_attention:
-            self.channel_attn = ECAAttention(channel=15)  # 5个频段×3通道
-            
-        # 特征转换层 - 将频域特征转换为更有用的表示
+        # 使用专业的DCT变换替代原始实现
+        self.dct_extractor = MultiScaleFrequencyExtractor(in_channels=3, out_channels=12)
+        
+        # 特征转换层
         self.freq_transform = nn.Sequential(
-            nn.Conv2d(15, 32, kernel_size=3, padding=1, bias=False),
+            nn.Conv2d(12, 32, kernel_size=3, padding=1, bias=False),
             nn.BatchNorm2d(32),
             nn.ReLU(inplace=True),
             nn.Conv2d(32, 12, kernel_size=1, bias=False)
         )
+        
+        # 使用注意力机制处理频域特征
+        self.use_attention = use_attention
+        if use_attention:
+            self.freq_attention = FrequencyAwareAttention(in_channels=12, reduction=4)
 
     def forward(self, x):
-        # 移动DCT矩阵到与输入相同的设备
-        _DCT_all = self._DCT_all.to(x.device)
-        _DCT_all_T = self._DCT_all_T.to(x.device)
+        # 使用专业的多尺度DCT提取器
+        freq_features = self.dct_extractor(x)
         
-        # DCT变换到频域
-        x_freq = _DCT_all @ x @ _DCT_all_T    # [N, 3, H, W]
-
-        # 分别应用多个频带过滤器
-        y_low = self.low_filter(x_freq)
-        y_mid_low = self.mid_low_filter(x_freq)
-        y_mid_high = self.mid_high_filter(x_freq)
-        y_high = self.high_filter(x_freq)
-        y_all = self.all_filter(x_freq)
-
-        # IDCT变换回空域
-        y_low = _DCT_all_T @ y_low @ _DCT_all
-        y_mid_low = _DCT_all_T @ y_mid_low @ _DCT_all
-        y_mid_high = _DCT_all_T @ y_mid_high @ _DCT_all
-        y_high = _DCT_all_T @ y_high @ _DCT_all
-        y_all = _DCT_all_T @ y_all @ _DCT_all
-        
-        # 连接所有频带特征
-        out = torch.cat([y_low, y_mid_low, y_mid_high, y_high, y_all], dim=1)    # [N, 15, H, W]
-        
-        # 应用通道注意力
+        # 应用频率感知注意力
         if self.use_attention:
-            out = self.channel_attn(out)
+            freq_features = self.freq_attention(freq_features)
             
         # 特征转换
-        out = self.freq_transform(out)    # [N, 12, H, W]
+        out = self.freq_transform(freq_features)
         
         return out
 
 
-# 特征融合模块 - 动态融合频域和空域特征
-class DynamicFeatureFusion(nn.Module):
-    def __init__(self, in_channels):
-        super(DynamicFeatureFusion, self).__init__()
-        self.fc1 = nn.Linear(in_channels * 2, in_channels // 2)
-        self.relu = nn.ReLU(inplace=True)
-        self.fc2 = nn.Linear(in_channels // 2, 2)
-        self.softmax = nn.Softmax(dim=1)
+# 专门的RGB+DCT双分支融合网络
+class ForensicDualBranchNet(nn.Module):
+    def __init__(self, config, num_classes=2, img_size=256, mode='Both'):
+        super(ForensicDualBranchNet, self).__init__()
+        self.num_classes = num_classes
+        self.mode = mode
+        self.img_size = img_size
         
-    def forward(self, x1, x2):
-        # x1, x2: [B, C, H, W]
-        batch_size, channels, height, width = x1.size()
+        # 使用EnhancedHRNet作为主要特征提取器
+        self.backbone = EnhancedHRNet(config)
         
-        # 全局特征
-        x1_pool = F.adaptive_avg_pool2d(x1, 1).view(batch_size, -1)
-        x2_pool = F.adaptive_avg_pool2d(x2, 1).view(batch_size, -1)
-        x_pool = torch.cat([x1_pool, x2_pool], dim=1)
-        
-        # 计算融合权重
-        weights = self.fc1(x_pool)
-        weights = self.relu(weights)
-        weights = self.fc2(weights)
-        weights = self.softmax(weights).view(batch_size, 2, 1, 1, 1)
-        
-        # 应用权重
-        out = weights[:, 0] * x1.unsqueeze(1) + weights[:, 1] * x2.unsqueeze(1)
-        return out.squeeze(1)
-
-
-# Vision Transformer Block - 用于全局特征提取
-class TransformerBlock(nn.Module):
-    def __init__(self, dim, num_heads=8, mlp_ratio=4.0, drop_path=0.1):
-        super().__init__()
-        self.norm1 = nn.LayerNorm(dim)
-        self.attn = nn.MultiheadAttention(dim, num_heads, batch_first=True)
-        
-        self.norm2 = nn.LayerNorm(dim)
-        mlp_hidden_dim = int(dim * mlp_ratio)
-        self.mlp = nn.Sequential(
-            nn.Linear(dim, mlp_hidden_dim),
-            nn.GELU(),
-            nn.Dropout(drop_path),
-            nn.Linear(mlp_hidden_dim, dim)
-        )
-        self.drop_path = nn.Dropout(drop_path)
-        
-    def forward(self, x):
-        # x: [B, L, D]
-        x_norm = self.norm1(x)
-        attn_output, _ = self.attn(x_norm, x_norm, x_norm)
-        x = x + self.drop_path(attn_output)
-        x = x + self.drop_path(self.mlp(self.norm2(x)))
-        return x
-
-
-# 边界感知模块 - 受Face X-ray启发
-class BoundaryAwareModule(nn.Module):
-    def __init__(self, in_channels):
-        super(BoundaryAwareModule, self).__init__()
-        # 梯度特征提取
-        self.sobel_x = nn.Conv2d(in_channels, in_channels, kernel_size=3, padding=1, groups=in_channels, bias=False)
-        self.sobel_y = nn.Conv2d(in_channels, in_channels, kernel_size=3, padding=1, groups=in_channels, bias=False)
-        
-        # 初始化Sobel算子
-        with torch.no_grad():
-            self.sobel_x.weight[:, :, :, :] = 0
-            self.sobel_x.weight[:, :, 0, 0] = -1
-            self.sobel_x.weight[:, :, 0, 2] = 1
-            self.sobel_x.weight[:, :, 1, 0] = -2
-            self.sobel_x.weight[:, :, 1, 2] = 2
-            self.sobel_x.weight[:, :, 2, 0] = -1
-            self.sobel_x.weight[:, :, 2, 2] = 1
-            
-            self.sobel_y.weight[:, :, :, :] = 0
-            self.sobel_y.weight[:, :, 0, 0] = -1
-            self.sobel_y.weight[:, :, 0, 1] = -2
-            self.sobel_y.weight[:, :, 0, 2] = -1
-            self.sobel_y.weight[:, :, 2, 0] = 1
-            self.sobel_y.weight[:, :, 2, 1] = 2
-            self.sobel_y.weight[:, :, 2, 2] = 1
-            
-        # 边界注意力
-        self.conv_boundary = nn.Sequential(
-            nn.Conv2d(in_channels * 2, in_channels, kernel_size=3, padding=1),
-            nn.BatchNorm2d(in_channels),
+        # 额外的掩码生成器，增强边界检测
+        self.mask_generator = nn.Sequential(
+            nn.Conv2d(728, 256, kernel_size=3, padding=1),
+            nn.BatchNorm2d(256),
             nn.ReLU(inplace=True),
-            nn.Conv2d(in_channels, in_channels, kernel_size=1),
+            nn.Conv2d(256, 128, kernel_size=3, padding=1),
+            nn.BatchNorm2d(128),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(128, 64, kernel_size=3, padding=1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(64, 1, kernel_size=1),
             nn.Sigmoid()
         )
         
-    def forward(self, x):
-        # 提取梯度特征
-        edge_x = self.sobel_x(x)
-        edge_y = self.sobel_y(x)
-        edge = torch.cat([edge_x, edge_y], dim=1)
+        # 初始化权重
+        self._init_weights()
+    
+    def _init_weights(self):
+        # 初始化掩码生成器的权重
+        for m in self.mask_generator.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+    
+    def forward(self, x, dct_input=None):
+        # 使用主干网络提取特征
+        cls_output, mask_output = self.backbone(x, dct_input)
         
-        # 计算边界注意力图
-        boundary_attention = self.conv_boundary(edge)
+        # 确保掩码输出大小为原始图像尺寸
+        if mask_output.size(-1) != self.img_size or mask_output.size(-2) != self.img_size:
+            mask_output = F.interpolate(
+                mask_output, 
+                size=(self.img_size, self.img_size), 
+                mode='bilinear', 
+                align_corners=False
+            )
         
-        # 增强特征
-        enhanced = x * boundary_attention
-        return x + enhanced  # 残差连接
+        return mask_output, cls_output
 
 
 # 改进的F3Net - 整合所有增强模块
@@ -317,17 +214,17 @@ class EnhancedF3Net(nn.Module):
         self.mode = mode
         self.img_size = img_size
 
-        # 初始化频域分析分支
+        # 初始化频域分析分支 - 使用专业的DCT变换
         self.FAD_head = EnhancedFADHead(img_size, use_attention=True)
         
         # 初始化主干网络
         self.init_xcep_branch(config)
         
-        # 边界感知模块
-        self.boundary_module = BoundaryAwareModule(728)
+        # 边界感知模块 - 使用专业的边界增强注意力
+        self.boundary_module = BoundaryEnhancedAttention(728)
         
-        # 动态特征融合
-        self.feature_fusion = DynamicFeatureFusion(728)
+        # 特征融合 - 使用ForensicAttentionFusion
+        self.feature_fusion = ForensicAttentionFusion(728, reduction=16, num_heads=8)
         
         # 空间注意力
         self.spatial_attention = SpatialPyramidAttention(728*2)
@@ -383,7 +280,7 @@ class EnhancedF3Net(nn.Module):
         # 确保所有模型在正确的设备上
         device = x.device
         
-        # 频域分析
+        # 频域分析 - 使用专业的DCT提取器
         fea_FAD = self.FAD_head(x)
         
         # 特征提取 - 频域与RGB两个分支
@@ -393,8 +290,11 @@ class EnhancedF3Net(nn.Module):
         # 边界感知增强
         fea_Fre = self.boundary_module(fea_Fre)
         
-        # 连接两个分支特征
-        combined_features = torch.cat((fea_Fre, fea_RGB), dim=1)
+        # 双分支特征融合 - 使用ForensicAttentionFusion
+        rgb_enhanced, freq_enhanced, fused_features = self.feature_fusion(fea_RGB, fea_Fre)
+        
+        # 连接增强后的特征
+        combined_features = torch.cat((rgb_enhanced, freq_enhanced), dim=1)
         
         # 空间注意力增强
         enhanced_features = self.spatial_attention(combined_features)
@@ -421,7 +321,76 @@ class EnhancedF3Net(nn.Module):
         logits = self.classifier(flat_features)
         
         return mask_pred_upsampled, logits
+
+
+# 使用我们专门设计的模块创建面向伪造检测优化的模型
+class DeepForensicsNet(nn.Module):
+    """
+    深度伪造检测网络 - 整合所有优化组件
+    """
+    def __init__(self, config, num_classes=2, img_size=256, mode='Both'):
+        super(DeepForensicsNet, self).__init__()
+        self.num_classes = num_classes
+        self.mode = mode
+        self.img_size = img_size
+        
+        # 根据模式选择不同的模型架构
+        if mode == 'RGB':
+            # 仅使用RGB分支
+            self.model = EnhancedHRNet(config)
+        elif mode == 'FAD':
+            # 仅使用频域分析分支
+            self.model = EnhancedFADHead(img_size, use_attention=True)
+            self.classifier = nn.Sequential(
+                nn.AdaptiveAvgPool2d(1),
+                nn.Flatten(),
+                nn.Linear(12, 512),
+                nn.ReLU(inplace=True),
+                nn.Dropout(0.5),
+                nn.Linear(512, num_classes)
+            )
+        else:  # 'Both' - 默认使用双分支架构
+            self.model = ForensicDualBranchNet(config, num_classes, img_size)
+            
+    def forward(self, x, dct_input=None):
+        if self.mode == 'RGB':
+            # 仅使用RGB分支
+            return self.model(x)
+        elif self.mode == 'FAD':
+            # 仅使用频域分析分支
+            features = self.model(x)
+            logits = self.classifier(features)
+            # 创建一个虚拟掩码预测
+            dummy_mask = torch.zeros(x.size(0), 1, self.img_size, self.img_size, device=x.device)
+            return dummy_mask, logits
+        else:  # 'Both'
+            # 完整的双分支模型
+            return self.model(x, dct_input)
     
+    def extract_features(self, x, dct_input=None):
+        """提取模型中间特征用于分析"""
+        if self.mode != 'Both':
+            raise NotImplementedError("特征提取当前仅支持双分支模式")
+            
+        # 获取主干网络的中间特征
+        return self.model.backbone._get_stage_features(x, dct_input)
+    
+    def get_attention_maps(self, x, dct_input=None):
+        """获取注意力图用于可视化"""
+        if self.mode != 'Both':
+            raise NotImplementedError("注意力图获取当前仅支持双分支模式")
+            
+        # 前向传播并返回注意力图
+        with torch.no_grad():
+            _ = self.forward(x, dct_input)
+            
+        # 从ForensicAttentionFusion模块获取注意力图
+        # 注：这需要修改ForensicAttentionFusion以保存注意力图
+        if hasattr(self.model.feature_fusion, 'last_attention_map'):
+            return self.model.feature_fusion.last_attention_map
+        else:
+            raise NotImplementedError("ForensicAttentionFusion模块需要保存注意力图")
+
 
 # 保留原始utils函数
 def DCT_mat(size):
@@ -453,5 +422,28 @@ def get_state_dict(pretrained_path='pretrained/xception-b5690688.pth', pretraine
     state_dict2 = {k:v for k, v in state_dict.items() if 'fc' not in k}
 
     return state_dict1, state_dict2
+
+
+# 创建模型的工厂函数 - 便于外部使用
+def create_model(config, model_type='enhanced', num_classes=2, img_size=256, mode='Both'):
+    """
+    创建伪造检测模型
+    
+    Args:
+        config: 模型配置
+        model_type: 模型类型，可选值：'enhanced', 'f3net', 'forensics'
+        num_classes: 分类类别数
+        img_size: 输入图像尺寸
+        mode: 模型模式，可选值：'RGB', 'FAD', 'Both'
+    
+    Returns:
+        实例化的模型
+    """
+    if model_type == 'enhanced':
+        return EnhancedF3Net(config, num_classes, img_size, img_size, mode)
+    elif model_type == 'forensics':
+        return DeepForensicsNet(config, num_classes, img_size, mode)
+    else:  # 默认使用 EnhancedF3Net
+        return EnhancedF3Net(config, num_classes, img_size, img_size, mode)
 
 

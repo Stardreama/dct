@@ -10,7 +10,40 @@ TYPE: ""
 EPOCHES: 5
 BATCH_SIZE: 8
 
-# 新增数据增强配置
+# 新增模型类型和配置
+MODEL_CONFIG:
+  TYPE: "forensics"  # 'enhanced', 'f3net', 'forensics'
+  MODE: "Both"  # 'RGB', 'FAD', 'Both'
+  IMG_SIZE: 256
+  NUM_CLASSES: 2
+  PRETRAINED:
+    XCEPTION: "pretrained/xception-b5690688.pth"
+    HRNET: "pretrained/hrnet_w32.pth"
+  ATTENTION:
+    TYPE: "forensic_fusion"  # 'coordinate', 'frequency', 'self_mutual', 'boundary', 'forensic_fusion'
+    REDUCTION: 16
+    NUM_HEADS: 8
+    DROPOUT: 0.1
+
+# DCT变换配置
+DCT_TRANSFORM:
+  ENABLED: true
+  OUT_CHANNELS: 12
+  MULTI_SCALE: true
+  LEARNABLE: true
+  PYRAMID_LEVELS: 3  # 金字塔层级数
+  FREQUENCY_BANDS:
+    LOW:
+      START: 0
+      END: 8
+    MIDDLE:
+      START: 9
+      END: 32
+    HIGH:
+      START: 33
+      END: 64
+
+# 数据增强配置
 DATA_AUGMENTATION:
   ENABLED: true
   COLOR_JITTER:
@@ -45,24 +78,45 @@ DATA_AUGMENTATION:
     ENABLED: true
     PROB: 0.3
     QUALITY_RANGE: [50, 95]
+  # 伪造特定的数据增强
+  FORENSIC_SPECIFIC:
+    ENABLED: true
+    BOUNDARY_BLENDING:
+      ENABLED: true
+      PROB: 0.3
+      BLEND_RANGE: [0.1, 0.3]
+    LOCAL_COLOR_DISTORTION:
+      ENABLED: true
+      PROB: 0.3
+      SCALE_RANGE: [0.8, 1.2]
+    FREQUENCY_DOMAIN:
+      ENABLED: true
+      PROB: 0.3
 
-# 新增优化器配置
+# 优化器配置
 OPTIMIZER:
-  NAME: "adamw" # 'sgd', 'adam', 'adamw'
+  NAME: "adamw"  # 'sgd', 'adam', 'adamw'
   LR: 0.0002
   WEIGHT_DECAY: 0.0001
-  MOMENTUM: 0.9 # 用于SGD
-  BETA1: 0.9 # 用于Adam/AdamW
-  BETA2: 0.999 # 用于Adam/AdamW
+  MOMENTUM: 0.9  # 用于SGD
+  BETA1: 0.9  # 用于Adam/AdamW
+  BETA2: 0.999  # 用于Adam/AdamW
+  # 分层学习率
+  LAYER_DECAY: 
+    ENABLED: true
+    BACKBONE: 0.1
+    FUSION: 1.0
+    ATTENTION: 1.0
+    CLASSIFIER: 0.5
 
-# 新增学习率调度器
+# 学习率调度器
 LR_SCHEDULER:
-  NAME: "cosine" # 'step', 'multistep', 'cosine', 'plateau'
+  NAME: "cosine"  # 'step', 'multistep', 'cosine', 'plateau'
   WARMUP:
     ENABLED: true
     EPOCHS: 5
     MULTIPLIER: 1.0
-    METHOD: "linear" # 'linear', 'constant'
+    METHOD: "linear"  # 'linear', 'constant'
   COSINE:
     T_MAX: 100
     ETA_MIN: 0.00001
@@ -77,26 +131,69 @@ LR_SCHEDULER:
     FACTOR: 0.5
     MIN_LR: 0.00001
 
-# 新增训练策略配置
+# 训练策略配置
 TRAINING:
-  MIXED_PRECISION: true # 启用混合精度训练
-  CLIP_GRAD_NORM: 1.0 # 梯度裁剪值
+  MIXED_PRECISION: true  # 启用混合精度训练
+  CLIP_GRAD_NORM: 1.0  # 梯度裁剪值
   EMA:
-    ENABLED: true # 启用EMA模型
-    DECAY: 0.999 # EMA衰减率
+    ENABLED: true  # 启用EMA模型
+    DECAY: 0.999  # EMA衰减率
   VALIDATION:
-    FREQ: 100 # 每100步验证一次
-    METRIC: "accuracy" # 验证指标
+    FREQ: 100  # 每100步验证一次
+    METRIC: "accuracy"  # 验证指标
   EARLY_STOPPING:
     ENABLED: true
-    PATIENCE: 10 # 早停耐心值
-    MIN_DELTA: 0.001 # 最小改进差值
+    PATIENCE: 10  # 早停耐心值
+    MIN_DELTA: 0.001  # 最小改进差值
+  # 渐进式训练
+  PROGRESSIVE:
+    ENABLED: false
+    STAGES:
+      - {EPOCHS: 10, FREEZE: ["backbone"], UNFREEZE: []}
+      - {EPOCHS: 20, FREEZE: [], UNFREEZE: ["backbone", "fusion", "attention"]}
+  RESUME:
+    ENABLED: false
+    PATH: ""
 
-# 新增掩码监督配置
-MASK:
-  WEIGHT: 0.5 # 掩码损失权重
-  ENABLED: true # 是否启用掩码监督
+# 多任务学习配置
+MULTI_TASK:
+  # 分类任务
+  CLASSIFICATION:
+    ENABLED: true
+    LOSS_TYPE: "cross_entropy"  # 'focal', 'cross_entropy'
+    WEIGHT: 1.0
+    FOCAL_GAMMA: 2.0
+    CLASS_WEIGHTS: [1.0, 1.0]  # 类别权重 [real, fake]
+  # 掩码预测任务
+  MASK:
+    ENABLED: true
+    LOSS_TYPE: "dice_bce"  # 'bce', 'dice', 'dice_bce'
+    WEIGHT: 0.5
+    DICE_SMOOTH: 1.0
+  # 特征对比学习
+  CONTRASTIVE:
+    ENABLED: false
+    WEIGHT: 0.2
+    TEMPERATURE: 0.07
+    PROJECTION_DIM: 128
 
+# 评估配置
+EVALUATION:
+  METRICS: ["accuracy", "auc", "f1", "precision", "recall"]
+  # 边界检测评估
+  BOUNDARY:
+    ENABLED: true
+    IOU_THRESHOLD: 0.5
+    METRICS: ["iou", "precision", "recall"]
+  # 高级评估
+  ADVANCED:
+    ENABLED: true
+    CONFUSION_MATRIX: true
+    ROC_CURVE: true
+    FEATURE_VISUALIZATION: true
+    ATTENTION_MAP: true
+
+# 原有HRNet模型配置 - 保留向后兼容性
 MODEL:
   NAME: cls_hrnet
   IMAGE_SIZE:
@@ -151,19 +248,23 @@ MODEL:
         - 128
         - 256
       FUSE_METHOD: SUM
+
 CUDNN:
   BENCHMARK: true
   DETERMINISTIC: false
   ENABLED: true
+
 DATASET:
   DATASET: "imagenet"
   DATA_FORMAT: "jpg"
   ROOT: "data/imagenet/"
   TEST_SET: "test"
   TRAIN_SET: "train"
+
 TEST:
   BATCH_SIZE_PER_GPU: 16
   MODEL_FILE: ""
+
 TRAIN:
   BATCH_SIZE_PER_GPU: 16
   BEGIN_EPOCH: 0
@@ -180,5 +281,6 @@ TRAIN:
   MOMENTUM: 0.9
   NESTEROV: true
   SHUFFLE: true
+
 DEBUG:
   DEBUG: false

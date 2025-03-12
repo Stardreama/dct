@@ -7,6 +7,16 @@ import torchvision.transforms as transforms
 import logging
 from pathlib import Path
 import random
+# 导入增强的数据转换
+from network.transform import (
+    forensic_transforms, 
+    ForensicJPEGArtifacts, 
+    FrequencyDomainTransform, 
+    FakeFeatureSimulator
+)
+
+# 导入DCT变换
+from network.dct_transform import DCTTransform, MultiScaleFrequencyExtractor
 
 class BaseForensicDataset(Dataset):
     """
@@ -247,6 +257,29 @@ class BaseForensicDataset(Dataset):
         """返回数据集长度"""
         return len(self.sample_list)
 
+    # 添加DCT提取器相关方法
+    def _get_dct_extractor(self, device='cpu'):
+        """懒加载DCT特征提取器"""
+        if self.dct_extractor is None:
+            # 检查配置中的DCT设置
+            dct_config = {}
+            if self.config and hasattr(self.config, 'DCT_TRANSFORM'):
+                dct_config = self.config.DCT_TRANSFORM
+                
+            # 设置默认值
+            out_channels = dct_config.get('OUT_CHANNELS', 12) if isinstance(dct_config, dict) else 12
+            multi_scale = dct_config.get('MULTI_SCALE', True) if isinstance(dct_config, dict) else True
+            
+            # 创建提取器
+            if multi_scale:
+                self.dct_extractor = MultiScaleFrequencyExtractor(in_channels=3, out_channels=out_channels)
+            else:
+                self.dct_extractor = DCTTransform(in_channels=3, out_channels=out_channels)
+                
+            self.dct_extractor = self.dct_extractor.to(device)
+            
+        return self.dct_extractor
+        
 
 class TrainingForensicDataset(BaseForensicDataset):
     """训练用的增强数据集"""
@@ -425,18 +458,107 @@ class TestForensicDataset(BaseForensicDataset):
             return img, mask, label
 
 
-# 便利函数，创建适合于模型训练/测试的数据加载器
-def create_forensic_data_loaders(config, use_enhanced_dataset=True):
-    """
-    创建数据加载器
-    
-    Args:
-        config: 配置对象
-        use_enhanced_dataset: 是否使用增强数据集
+class EnhancedForensicDataset(BaseForensicDataset):
+    """增强的伪造检测数据集，支持掩码和DCT特征"""
+    def __init__(self, img_paths, dataset_type, 
+                 config=None, return_path=False, use_dct=True):
+        """
+        Args:
+            img_paths: 数据集根目录
+            dataset_type: 'train', 'val' 或 'test'
+            config: 配置参数
+            return_path: 是否返回文件路径
+            use_dct: 是否提取DCT特征
+        """
+        # 基础初始化
+        super().__init__(img_paths, dataset_type, None, None, config, return_path)
+        self.use_dct = use_dct
         
-    Returns:
-        tuple: (训练加载器, 验证加载器, 测试加载器)
-    """
+        # 使用增强的转换
+        if dataset_type == 'train':
+            self.transform = forensic_transforms.get_transform(
+                mode='train', 
+                input_size=256, 
+                use_dct=use_dct, 
+                **config.DATA_AUGMENTATION if hasattr(config, 'DATA_AUGMENTATION') else {}
+            )
+            self.paired_transform = forensic_transforms.get_paired_transform(
+                mode='train',
+                input_size=256,
+                **config.DATA_AUGMENTATION if hasattr(config, 'DATA_AUGMENTATION') else {}
+            )
+        else:
+            self.transform = forensic_transforms.get_transform(
+                mode=dataset_type,
+                input_size=256,
+                use_dct=use_dct
+            )
+            self.paired_transform = forensic_transforms.get_paired_transform(
+                mode=dataset_type,
+                input_size=256
+            )
+        
+        # 分析并打印数据集信息
+        stats = self._analyze_dataset_stats()
+        self.print_dataset_info(stats)
+    
+    def __getitem__(self, index):
+        """获取数据集样本，支持DCT特征和掩码"""
+        if index >= len(self.sample_list):
+            raise IndexError(f"索引 {index} 超出范围 (0-{len(self.sample_list)-1})")
+            
+        item = self.sample_list[index]
+        parts = item.split(' ')
+        if len(parts) < 2:
+            self.logger.warning(f"样本格式错误: {item}")
+            # 回退到下一个样本
+            return self.__getitem__((index + 1) % len(self.sample_list))
+            
+        img_path = parts[0]
+        label = int(parts[1])
+        
+        # 安全加载图像
+        img = self._safe_image_loading(img_path, index)
+        if img is None:
+            # 如果加载失败，返回一个全黑图像
+            img = Image.new('RGB', (256, 256), (0, 0, 0))
+        
+        # 加载掩码
+        img_mask = self._load_mask_for_path(img_path, img.size)
+        
+        # 应用成对转换 - 同时处理图像和掩码
+        if self.paired_transform:
+            img, img_mask = self.paired_transform(img, img_mask)
+        
+        # 如果需要DCT特征
+        if self.use_dct:
+            try:
+                # 使用设备无关的方式生成DCT特征
+                with torch.no_grad():
+                    # 确保图像是张量格式
+                    if not torch.is_tensor(img):
+                        img_tensor = transforms.ToTensor()(img).unsqueeze(0)
+                    else:
+                        img_tensor = img.unsqueeze(0) if img.dim() == 3 else img
+                    
+                    # 提取DCT特征
+                    dct_extractor = self._get_dct_extractor(img_tensor.device)
+                    dct_features = dct_extractor(img_tensor).squeeze(0)
+                    
+                    return img, dct_features, img_mask, label
+            except Exception as e:
+                self.logger.warning(f"DCT特征提取失败: {e}")
+                # 返回空DCT特征
+                dct_features = torch.zeros((12, 256, 256), device=img.device if torch.is_tensor(img) else 'cpu')
+                return img, dct_features, img_mask, label
+        else:
+            # 不需要DCT特征
+            return img, img_mask, label
+
+
+# 更新数据加载器创建函数
+def create_forensic_data_loaders(config, use_enhanced_dataset=True):
+    """创建数据加载器，支持掩码和DCT双输入"""
     # 提取配置参数
     train_path = config.TRAIN_PATH
     val_path = config.VAL_PATH
@@ -444,52 +566,38 @@ def create_forensic_data_loaders(config, use_enhanced_dataset=True):
     batch_size = config.BATCH_SIZE
     num_workers = config.WORKERS if hasattr(config, 'WORKERS') else 4
     
-    # 数据转换
-    tensor_transform = transforms.Compose([
-        transforms.Resize((256, 256)),
-        transforms.ToTensor(),
-        transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
-    ])
+    # 检查是否使用DCT
+    use_dct = True
+    if hasattr(config, 'DCT_TRANSFORM') and isinstance(config.DCT_TRANSFORM, dict):
+        use_dct = config.DCT_TRANSFORM.get('ENABLED', True)
     
-    # 基本增强
-    aug_transform = transforms.Compose([
-        transforms.RandomHorizontalFlip(),
-        transforms.ColorJitter(0.2, 0.2, 0.2, 0.1),
-    ]) if not hasattr(config, 'DATA_AUGMENTATION') else None
-    
-    # 创建数据集
+    # 创建增强数据集
     if use_enhanced_dataset:
-        train_dataset = TrainingForensicDataset(
+        train_dataset = EnhancedForensicDataset(
             img_paths=train_path,
-            type=config.TYPE if hasattr(config, 'TYPE') else "",
             dataset_type='train',
-            aug_transform=aug_transform,
-            tensor_transform=tensor_transform,
-            config=config
+            config=config,
+            use_dct=use_dct
         )
         
-        val_dataset = TrainingForensicDataset(
+        val_dataset = EnhancedForensicDataset(
             img_paths=val_path,
-            type=config.TYPE if hasattr(config, 'TYPE') else "",
             dataset_type='val',
-            aug_transform=None,
-            tensor_transform=tensor_transform,
-            config=None
+            config=config,
+            use_dct=use_dct
         )
         
-        test_dataset = TestForensicDataset(
-            dataset_dir=test_path,
-            split="test",
-            transform=tensor_transform,
-            return_path=True
+        test_dataset = EnhancedForensicDataset(
+            img_paths=test_path,
+            dataset_type='test',
+            config=config,
+            return_path=True,
+            use_dct=use_dct
         )
     else:
-        # 使用基本数据集类
-        from torch.utils.data import Dataset
-        
-        # 这里可以实现简单版数据集作为备选
+        # 使用原始数据集（保留原代码）
         # ...
-        
+    
     # 创建数据加载器
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
@@ -563,3 +671,18 @@ if __name__ == "__main__":
             print(f"样本: 图像={sample[0].shape}, 掩码={sample[1].shape}, 标签={sample[2]}")
             print(f"路径: {sample[3]}")
             print(f"伪造类型: {sample[4]}")
+    
+    # 测试增强数据集
+    print("\n测试增强数据集...")
+    enhanced_dataset = EnhancedForensicDataset(
+        img_paths=config.TRAIN_PATH,
+        dataset_type='train',
+        config=config,
+        use_dct=True
+    )
+    
+    print(f"增强数据集大小: {len(enhanced_dataset)}")
+    if len(enhanced_dataset) > 0:
+        sample = enhanced_dataset[0]
+        print(f"样本形状: 图像={sample[0].shape}, DCT特征={sample[1].shape}, "
+              f"掩码={sample[2].shape}, 标签={sample[3]}")
