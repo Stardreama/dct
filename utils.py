@@ -1,0 +1,246 @@
+import torch
+import os
+import numpy as np
+import random
+import torchvision
+from torch.utils import data
+from torch.utils.data import Dataset, DataLoader
+import torchvision.transforms as transforms
+from torchvision import transforms as trans
+from sklearn.metrics import average_precision_score, precision_recall_curve, accuracy_score
+from sklearn.metrics import roc_curve
+from sklearn.metrics import auc as cal_auc
+from PIL import Image
+import sys
+import logging
+from network.transform import mesonet_data_transforms
+
+# 其余代码保持不变
+
+class FFDataset(data.Dataset):
+
+    def __init__(self, dataset_root, frame_num=300, size=299, augment=True):
+        self.data_root = dataset_root
+        self.frame_num = frame_num
+        self.train_list = self.collect_image(self.data_root)
+        if augment:
+            self.transform = trans.Compose([trans.RandomHorizontalFlip(p=0.5), trans.ToTensor()])
+            print("Augment True!")
+        else:
+            self.transform = trans.ToTensor()
+        self.max_val = 1.
+        self.min_val = -1.
+        self.size = size
+
+    def collect_image(self, root):
+        image_path_list = []
+        print(root)
+        for split in os.listdir(root):
+            split_root = os.path.join(root, split)
+            print(split_root)
+            img_list = os.listdir(split_root)
+            random.shuffle(img_list)
+            img_list = img_list if len(img_list) < self.frame_num else img_list[:self.frame_num]
+            for img in img_list:
+                img_path = os.path.join(split_root, img)
+                image_path_list.append(img_path)
+        return image_path_list
+
+    def read_image(self, path):
+        img = Image.open(path)
+        return img
+
+    def resize_image(self, image, size):
+        img = image.resize((size, size))
+        return img
+
+    def __getitem__(self, index):
+        image_path = self.train_list[index]
+        img = self.read_image(image_path)
+        img = self.resize_image(img,size=self.size)
+        img = self.transform(img)
+        img = img * (self.max_val - self.min_val) + self.min_val
+        return img
+
+    def __len__(self):
+        return len(self.train_list)
+
+
+def get_dataset(name = 'train', size=299, root='/data/yike/FF++_std_c40_300frames/', frame_num=300, augment=True):
+    root = os.path.join(root, name)
+    fake_root = os.path.join(root,'fake')
+
+    fake_list = ['Deepfakes', 'Face2Face', 'FaceSwap', 'NeuralTextures']
+    
+    total_len = len(fake_list)
+    dset_lst = []
+    for i in range(total_len):
+        fake = os.path.join(fake_root , fake_list[i])
+        dset = FFDataset(fake, frame_num, size, augment)
+        dset.size = size
+        dset_lst.append(dset)
+    return torch.utils.data.ConcatDataset(dset_lst), total_len
+
+
+# 创建一个类似于FaceDataset的评估数据集类
+class EvalDataset(Dataset):
+    def __init__(self, img_paths, dataset_type, transform=None):
+        self.img_paths = img_paths
+        self.sample_list = list()
+        self.dataset_type = dataset_type
+        self.transform = transform
+
+        # 读取索引文件
+        self.typepath = os.path.join(img_paths, f"{self.dataset_type}.txt")
+        with open(self.typepath) as f:
+            lines = f.readlines()
+            for line in lines:
+                self.sample_list.append(line.strip())
+
+    def __getitem__(self, index):
+        item = self.sample_list[index]
+        parts = item.split(' ')
+        img_path = parts[0]
+        label = int(parts[1])
+        
+        img = Image.open(img_path).convert('RGB')
+        
+        if self.transform:
+            img = self.transform(img)
+            
+        return img, label
+
+    def __len__(self):
+        return len(self.sample_list)
+
+def evaluate(model, config, test_path, batch_size=16):
+    """评估模型性能"""
+    # 数据变换
+    test_transform = transforms.Compose([
+        transforms.Resize(256),
+        transforms.ToTensor(),
+        transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
+    ])
+    
+    # 创建数据集和加载器
+    eval_dataset = EvalDataset(test_path, "test", test_transform)
+    eval_loader = DataLoader(eval_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
+    
+    # 评估
+    model.model.eval()
+    correct = 0
+    total = 0
+    
+    with torch.no_grad():
+        for images, labels in eval_loader:
+            images = images.cuda()
+            labels = labels.cuda()
+            
+            # 前向传播
+            _, outputs = model(images)
+            
+            # 计算准确率
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+    
+    # 计算总体准确率
+    accuracy = correct / total
+    
+    return accuracy
+
+def setup_logger(logger_path, log_file, logger_name):
+    logger = logging.getLogger(logger_name)
+    file_formatter = logging.Formatter('%(asctime)s - %(message)s')
+    console_formatter = logging.Formatter('%(message)s')
+
+    # 创建目录（如果不存在）
+    if not os.path.exists(logger_path):
+        os.makedirs(logger_path)
+
+    # 文件处理器
+    file_handler = logging.FileHandler(os.path.join(logger_path, log_file))
+    file_handler.setFormatter(file_formatter)
+    logger.addHandler(file_handler)
+
+    # 控制台处理器
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(console_formatter)
+    logger.addHandler(console_handler)
+
+    logger.setLevel(logging.DEBUG)
+    
+    return logger
+
+# python 3.7
+# """Utility functions for logging."""
+
+# __all__ = ['setup_logger']
+
+# DEFAULT_WORK_DIR = 'results'
+
+# def setup_logger(work_dir=None, logfile_name='log.txt', logger_name='logger'):
+#     """Sets up logger from target work directory.
+
+#     The function will sets up a logger with `DEBUG` log level. Two handlers will
+#     be added to the logger automatically. One is the `sys.stdout` stream, with
+#     `INFO` log level, which will print improtant messages on the screen. The other
+#     is used to save all messages to file `$WORK_DIR/$LOGFILE_NAME`. Messages will
+#     be added time stamp and log level before logged.
+
+#     NOTE: If `logfile_name` is empty, the file stream will be skipped. Also,
+#     `DEFAULT_WORK_DIR` will be used as default work directory.
+
+#     Args:
+#     work_dir: The work directory. All intermediate files will be saved here.
+#         (default: None)
+#     logfile_name: Name of the file to save log message. (default: `log.txt`)
+#     logger_name: Unique name for the logger. (default: `logger`)
+
+#     Returns:
+#     A `logging.Logger` object.
+
+#     Raises:
+#     SystemExit: If the work directory has already existed, of the logger with
+#         specified name `logger_name` has already existed.
+#     """
+
+#     logger = logging.getLogger(logger_name)
+#     if logger.hasHandlers():  # Already existed
+#         raise SystemExit(f'Logger name `{logger_name}` has already been set up!\n'
+#                             f'Please use another name, or otherwise the messages '
+#                             f'may be mixed between these two loggers.')
+
+#     logger.setLevel(logging.DEBUG)
+#     formatter = logging.Formatter("[%(asctime)s][%(levelname)s] %(message)s")
+#     # Print log message with `INFO` level or above onto the screen.
+#     sh = logging.StreamHandler(stream=sys.stdout)
+#     sh.setLevel(logging.DEBUG)
+#     sh.setFormatter(formatter)
+#     logger.addHandler(sh)
+
+#     if not logfile_name:
+#         return logger
+
+#     work_dir = work_dir or DEFAULT_WORK_DIR
+#     logfile_name = os.path.join(work_dir, logfile_name)
+#     # if os.path.isfile(logfile_name):
+#     #   print(f'Log file `{logfile_name}` has already existed!')
+#     #   while True:
+#     #     decision = input(f'Would you like to overwrite it (Y/N): ')
+#     #     decision = decision.strip().lower()
+#     #     if decision == 'n':
+#     #       raise SystemExit(f'Please specify another one.')
+#     #     if decision == 'y':
+#     #       logger.warning(f'Overwriting log file `{logfile_name}`!')
+#     #       break
+
+#     os.makedirs(work_dir, exist_ok=True)
+
+#     # Save log message with all levels in log file.
+#     fh = logging.FileHandler(logfile_name)
+#     fh.setLevel(logging.DEBUG)
+#     fh.setFormatter(formatter)
+#     logger.addHandler(fh)
+
+#     return logger

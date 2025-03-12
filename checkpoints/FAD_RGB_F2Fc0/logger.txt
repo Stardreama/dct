@@ -1,0 +1,1720 @@
+Epoch: 0 
+ Val ACC: 0.6596 
+ Loss: 0.6384 
+ Best ACC: 0.6596 
+Epoch: 0 
+ Val ACC: 0.6670 
+ Loss: 0.5625 
+ Best ACC: 0.6670 
+Epoch: 0 
+ Val ACC: 0.6771 
+ Loss: 0.6642 
+ Best ACC: 0.6771 
+Epoch: 0 
+ Val ACC: 0.7333 
+ Loss: 0.5950 
+ Best ACC: 0.7333 
+Epoch: 0 
+ Val ACC: 0.6806 
+ Loss: 0.3717 
+ Best ACC: 0.7333 
+Epoch: 0 
+ Val ACC: 0.7378 
+ Loss: 0.5286 
+ Best ACC: 0.7378 
+Epoch: 0 
+ Val ACC: 0.6971 
+ Loss: 0.3910 
+ Best ACC: 0.7378 
+Epoch: 0 
+ Val ACC: 0.7652 
+ Loss: 0.3036 
+ Best ACC: 0.7652 
+Epoch: 0 
+ Val ACC: 0.7910 
+ Loss: 0.6488 
+ Best ACC: 0.7910 
+Epoch: 0 
+ Val ACC: 0.7907 
+ Loss: 0.3817 
+ Best ACC: 0.7910 
+Epoch: 0 
+ Val ACC: 0.7986 
+ Loss: 0.3642 
+ Best ACC: 0.7986 
+Epoch: 0 
+ Val ACC: 0.8241 
+ Loss: 0.4350 
+ Best ACC: 0.8241 
+Epoch: 0 
+ Val ACC: 0.8361 
+ Loss: 0.3638 
+ Best ACC: 0.8361 
+Epoch: 0 
+ Val ACC: 0.8009 
+ Loss: 0.2878 
+ Best ACC: 0.8361 
+Epoch: 0 
+ Val ACC: 0.8635 
+ Loss: 0.3285 
+ Best ACC: 0.8635 
+Epoch: 0 
+ Val ACC: 0.8340 
+ Loss: 0.3369 
+ Best ACC: 0.8635 
+Epoch: 0 
+ Val ACC: 0.8616 
+ Loss: 0.3232 
+ Best ACC: 0.8635 
+Epoch: 0 
+ Val ACC: 0.8191 
+ Loss: 0.2854 
+ Best ACC: 0.8635 
+Epoch: 0 
+ Val ACC: 0.8287 
+ Loss: 0.5060 
+ Best ACC: 0.8635 
+Epoch: 0 
+ Val ACC: 0.8336 
+ Loss: 0.3076 
+ Best ACC: 0.8635 
+Epoch: 0 
+ Val ACC: 0.8450 
+ Loss: 0.2027 
+ Best ACC: 0.8635 
+Epoch: 0 
+ Val ACC: 0.8648 
+ Loss: 0.3703 
+ Best ACC: 0.8648 
+Epoch: 0 
+ Val ACC: 0.8648 
+ Loss: 0.3701 
+ Best ACC: 0.8648 
+Epoch: 0 
+ Val ACC: 0.8098 
+ Loss: 0.2962 
+ Best ACC: 0.8648 
+Epoch: 0 
+ Val ACC: 0.8856 
+ Loss: 0.1904 
+ Best ACC: 0.8856 
+Epoch: 0 
+ Val ACC: 0.8450 
+ Loss: 0.2523 
+ Best ACC: 0.8856 
+Epoch: 0 
+ Val ACC: 0.8756 
+ Loss: 0.4287 
+ Best ACC: 0.8856 
+Epoch: 0 
+ Val ACC: 0.8407 
+ Loss: 0.2080 
+ Best ACC: 0.8856 
+Epoch: 0 
+ Val ACC: 0.8244 
+ Loss: 0.3719 
+ Best ACC: 0.8856 
+Epoch: 0 
+ Val ACC: 0.8777 
+ Loss: 0.1204 
+ Best ACC: 0.8856 
+Epoch: 0 
+ Val ACC: 0.8892 
+ Loss: 0.2943 
+ Best ACC: 0.8892 
+Epoch: 0 
+ Val ACC: 0.8207 
+ Loss: 0.0537 
+ Best ACC: 0.8892 
+Epoch: 0 
+ Val ACC: 0.8903 
+ Loss: 0.4643 
+ Best ACC: 0.8903 
+Epoch: 0 
+ Val ACC: 0.8648 
+ Loss: 0.4302 
+ Best ACC: 0.8903 
+Epoch: 0 
+ Val ACC: 0.8829 
+ Loss: 0.1933 
+ Best ACC: 0.8903 
+Epoch: 0 
+ Val ACC: 0.8901 
+ Loss: 0.2575 
+ Best ACC: 0.8903 
+Epoch: 0 
+ Val ACC: 0.8887 
+ Loss: 0.1372 
+ Best ACC: 0.8903 
+Epoch: 0 
+ Val ACC: 0.8870 
+ Loss: 0.2976 
+ Best ACC: 0.8903 
+Epoch: 0 
+ Val ACC: 0.8973 
+ Loss: 0.5428 
+ Best ACC: 0.8973 
+Epoch: 0 
+ Val ACC: 0.8837 
+ Loss: 0.0568 
+ Best ACC: 0.8973 
+Epoch: 0 
+ Val ACC: 0.9033 
+ Loss: 0.8368 
+ Best ACC: 0.9033 
+Epoch: 0 
+ Val ACC: 0.9024 
+ Loss: 0.0990 
+ Best ACC: 0.9033 
+Epoch: 0 
+ Val ACC: 0.8713 
+ Loss: 0.1500 
+ Best ACC: 0.9033 
+Epoch: 0 
+ Val ACC: 0.8983 
+ Loss: 0.3061 
+ Best ACC: 0.9033 
+Epoch: 0 
+ Val ACC: 0.8989 
+ Loss: 0.2545 
+ Best ACC: 0.9033 
+Epoch: 0 
+ Val ACC: 0.9018 
+ Loss: 0.3122 
+ Best ACC: 0.9033 
+Epoch: 0 
+ Val ACC: 0.8959 
+ Loss: 0.0597 
+ Best ACC: 0.9033 
+Epoch: 0 
+ Val ACC: 0.9000 
+ Loss: 0.1341 
+ Best ACC: 0.9033 
+Epoch: 0 
+ Val ACC: 0.9009 
+ Loss: 0.1400 
+ Best ACC: 0.9033 
+Epoch: 0 
+ Val ACC: 0.8940 
+ Loss: 0.0719 
+ Best ACC: 0.9033 
+Epoch: 0 
+ Val ACC: 0.8869 
+ Loss: 0.1459 
+ Best ACC: 0.9033 
+Epoch: 0 
+ Val ACC: 0.8929 
+ Loss: 0.7450 
+ Best ACC: 0.9033 
+Epoch: 0 
+ Val ACC: 0.9001 
+ Loss: 0.0303 
+ Best ACC: 0.9033 
+Epoch: 0 
+ Val ACC: 0.8837 
+ Loss: 0.0923 
+ Best ACC: 0.9033 
+Epoch: 0 
+ Val ACC: 0.8948 
+ Loss: 0.2143 
+ Best ACC: 0.9033 
+Epoch: 0 
+ Val ACC: 0.8887 
+ Loss: 0.5813 
+ Best ACC: 0.9033 
+Epoch: 0 
+ Val ACC: 0.8890 
+ Loss: 0.1386 
+ Best ACC: 0.9033 
+Epoch: 0 
+ Val ACC: 0.8954 
+ Loss: 0.3312 
+ Best ACC: 0.9033 
+Epoch: 0 
+ Val ACC: 0.8930 
+ Loss: 0.0824 
+ Best ACC: 0.9033 
+Epoch: 0 
+ Val ACC: 0.8453 
+ Loss: 0.1412 
+ Best ACC: 0.9033 
+Epoch: 0 
+ Val ACC: 0.8861 
+ Loss: 0.3815 
+ Best ACC: 0.9033 
+Epoch: 0 
+ Val ACC: 0.8669 
+ Loss: 0.0630 
+ Best ACC: 0.9033 
+Epoch: 0 
+ Val ACC: 0.8811 
+ Loss: 0.0318 
+ Best ACC: 0.9033 
+Epoch: 0 
+ Val ACC: 0.9029 
+ Loss: 0.2765 
+ Best ACC: 0.9033 
+Epoch: 0 
+ Val ACC: 0.9050 
+ Loss: 0.2144 
+ Best ACC: 0.9050 
+Epoch: 0 
+ Val ACC: 0.8720 
+ Loss: 0.0644 
+ Best ACC: 0.9050 
+Epoch: 0 
+ Val ACC: 0.8757 
+ Loss: 0.0353 
+ Best ACC: 0.9050 
+Epoch: 0 
+ Val ACC: 0.9057 
+ Loss: 0.2489 
+ Best ACC: 0.9057 
+Epoch: 0 
+ Val ACC: 0.8638 
+ Loss: 0.1935 
+ Best ACC: 0.9057 
+Epoch: 0 
+ Val ACC: 0.8930 
+ Loss: 0.2295 
+ Best ACC: 0.9057 
+Epoch: 0 
+ Val ACC: 0.9193 
+ Loss: 0.0911 
+ Best ACC: 0.9193 
+Epoch: 0 
+ Val ACC: 0.8493 
+ Loss: 0.2748 
+ Best ACC: 0.9193 
+Epoch: 0 
+ Val ACC: 0.9111 
+ Loss: 0.4118 
+ Best ACC: 0.9193 
+Epoch: 0 
+ Val ACC: 0.9057 
+ Loss: 0.0932 
+ Best ACC: 0.9193 
+Epoch: 0 
+ Val ACC: 0.9166 
+ Loss: 0.4432 
+ Best ACC: 0.9193 
+Epoch: 0 
+ Val ACC: 0.9081 
+ Loss: 0.1030 
+ Best ACC: 0.9193 
+Epoch: 0 
+ Val ACC: 0.9180 
+ Loss: 0.0451 
+ Best ACC: 0.9193 
+Epoch: 0 
+ Val ACC: 0.8946 
+ Loss: 0.1403 
+ Best ACC: 0.9193 
+Epoch: 0 
+ Val ACC: 0.9136 
+ Loss: 0.6223 
+ Best ACC: 0.9193 
+Epoch: 0 
+ Val ACC: 0.9053 
+ Loss: 0.1128 
+ Best ACC: 0.9193 
+Epoch: 0 
+ Val ACC: 0.9079 
+ Loss: 0.0919 
+ Best ACC: 0.9193 
+Epoch: 0 
+ Val ACC: 0.9017 
+ Loss: 0.0327 
+ Best ACC: 0.9193 
+Epoch: 0 
+ Val ACC: 0.9150 
+ Loss: 0.0311 
+ Best ACC: 0.9193 
+Epoch: 0 
+ Val ACC: 0.8977 
+ Loss: 0.2866 
+ Best ACC: 0.9193 
+Epoch: 0 
+ Val ACC: 0.8948 
+ Loss: 0.3615 
+ Best ACC: 0.9193 
+Epoch: 0 
+ Val ACC: 0.8701 
+ Loss: 0.1100 
+ Best ACC: 0.9193 
+Epoch: 1 
+ Val ACC: 0.9053 
+ Loss: 0.3896 
+ Best ACC: 0.9193 
+Epoch: 1 
+ Val ACC: 0.9063 
+ Loss: 0.0335 
+ Best ACC: 0.9193 
+Epoch: 1 
+ Val ACC: 0.9094 
+ Loss: 0.0607 
+ Best ACC: 0.9193 
+Epoch: 1 
+ Val ACC: 0.9143 
+ Loss: 0.0397 
+ Best ACC: 0.9193 
+Epoch: 1 
+ Val ACC: 0.9043 
+ Loss: 0.0572 
+ Best ACC: 0.9193 
+Epoch: 1 
+ Val ACC: 0.9040 
+ Loss: 0.3180 
+ Best ACC: 0.9193 
+Epoch: 1 
+ Val ACC: 0.9043 
+ Loss: 0.1033 
+ Best ACC: 0.9193 
+Epoch: 1 
+ Val ACC: 0.8951 
+ Loss: 0.3592 
+ Best ACC: 0.9193 
+Epoch: 1 
+ Val ACC: 0.9149 
+ Loss: 0.3874 
+ Best ACC: 0.9193 
+Epoch: 1 
+ Val ACC: 0.8949 
+ Loss: 0.3189 
+ Best ACC: 0.9193 
+Epoch: 1 
+ Val ACC: 0.8937 
+ Loss: 0.2091 
+ Best ACC: 0.9193 
+Epoch: 1 
+ Val ACC: 0.8989 
+ Loss: 0.0349 
+ Best ACC: 0.9193 
+Epoch: 1 
+ Val ACC: 0.8299 
+ Loss: 0.0674 
+ Best ACC: 0.9193 
+Epoch: 1 
+ Val ACC: 0.9213 
+ Loss: 0.4360 
+ Best ACC: 0.9213 
+Epoch: 1 
+ Val ACC: 0.9188 
+ Loss: 0.2293 
+ Best ACC: 0.9213 
+Epoch: 1 
+ Val ACC: 0.9052 
+ Loss: 0.1022 
+ Best ACC: 0.9213 
+Epoch: 1 
+ Val ACC: 0.9135 
+ Loss: 0.0963 
+ Best ACC: 0.9213 
+Epoch: 1 
+ Val ACC: 0.9128 
+ Loss: 0.0504 
+ Best ACC: 0.9213 
+Epoch: 1 
+ Val ACC: 0.9209 
+ Loss: 0.1785 
+ Best ACC: 0.9213 
+Epoch: 1 
+ Val ACC: 0.9079 
+ Loss: 0.0747 
+ Best ACC: 0.9213 
+Epoch: 1 
+ Val ACC: 0.9152 
+ Loss: 0.3293 
+ Best ACC: 0.9213 
+Epoch: 1 
+ Val ACC: 0.8952 
+ Loss: 0.4107 
+ Best ACC: 0.9213 
+Epoch: 1 
+ Val ACC: 0.9189 
+ Loss: 0.0975 
+ Best ACC: 0.9213 
+Epoch: 1 
+ Val ACC: 0.9101 
+ Loss: 0.0740 
+ Best ACC: 0.9213 
+Epoch: 1 
+ Val ACC: 0.9165 
+ Loss: 0.0470 
+ Best ACC: 0.9213 
+Epoch: 1 
+ Val ACC: 0.9258 
+ Loss: 1.1463 
+ Best ACC: 0.9258 
+Epoch: 1 
+ Val ACC: 0.8840 
+ Loss: 0.0905 
+ Best ACC: 0.9258 
+Epoch: 1 
+ Val ACC: 0.8980 
+ Loss: 0.0249 
+ Best ACC: 0.9258 
+Epoch: 1 
+ Val ACC: 0.9198 
+ Loss: 0.3234 
+ Best ACC: 0.9258 
+Epoch: 1 
+ Val ACC: 0.9248 
+ Loss: 0.1092 
+ Best ACC: 0.9258 
+Epoch: 1 
+ Val ACC: 0.9169 
+ Loss: 0.0085 
+ Best ACC: 0.9258 
+Epoch: 1 
+ Val ACC: 0.9152 
+ Loss: 0.3312 
+ Best ACC: 0.9258 
+Epoch: 1 
+ Val ACC: 0.8975 
+ Loss: 0.0976 
+ Best ACC: 0.9258 
+Epoch: 1 
+ Val ACC: 0.8982 
+ Loss: 0.4364 
+ Best ACC: 0.9258 
+Epoch: 1 
+ Val ACC: 0.9108 
+ Loss: 0.1675 
+ Best ACC: 0.9258 
+Epoch: 1 
+ Val ACC: 0.9095 
+ Loss: 0.1813 
+ Best ACC: 0.9258 
+Epoch: 1 
+ Val ACC: 0.9035 
+ Loss: 0.5116 
+ Best ACC: 0.9258 
+Epoch: 1 
+ Val ACC: 0.9185 
+ Loss: 0.3060 
+ Best ACC: 0.9258 
+Epoch: 1 
+ Val ACC: 0.9243 
+ Loss: 0.0869 
+ Best ACC: 0.9258 
+Epoch: 1 
+ Val ACC: 0.9114 
+ Loss: 0.1859 
+ Best ACC: 0.9258 
+Epoch: 1 
+ Val ACC: 0.9148 
+ Loss: 0.0606 
+ Best ACC: 0.9258 
+Epoch: 1 
+ Val ACC: 0.9181 
+ Loss: 0.0388 
+ Best ACC: 0.9258 
+Epoch: 1 
+ Val ACC: 0.9110 
+ Loss: 0.0541 
+ Best ACC: 0.9258 
+Epoch: 1 
+ Val ACC: 0.8979 
+ Loss: 0.1302 
+ Best ACC: 0.9258 
+Epoch: 1 
+ Val ACC: 0.9066 
+ Loss: 0.1626 
+ Best ACC: 0.9258 
+Epoch: 1 
+ Val ACC: 0.9178 
+ Loss: 0.3119 
+ Best ACC: 0.9258 
+Epoch: 1 
+ Val ACC: 0.9067 
+ Loss: 0.0219 
+ Best ACC: 0.9258 
+Epoch: 1 
+ Val ACC: 0.9173 
+ Loss: 0.0664 
+ Best ACC: 0.9258 
+Epoch: 1 
+ Val ACC: 0.9123 
+ Loss: 0.7439 
+ Best ACC: 0.9258 
+Epoch: 1 
+ Val ACC: 0.9134 
+ Loss: 0.0417 
+ Best ACC: 0.9258 
+Epoch: 1 
+ Val ACC: 0.8994 
+ Loss: 0.2606 
+ Best ACC: 0.9258 
+Epoch: 1 
+ Val ACC: 0.9078 
+ Loss: 0.1159 
+ Best ACC: 0.9258 
+Epoch: 1 
+ Val ACC: 0.9113 
+ Loss: 0.0181 
+ Best ACC: 0.9258 
+Epoch: 1 
+ Val ACC: 0.9177 
+ Loss: 0.0892 
+ Best ACC: 0.9258 
+Epoch: 1 
+ Val ACC: 0.9206 
+ Loss: 0.0964 
+ Best ACC: 0.9258 
+Epoch: 1 
+ Val ACC: 0.9229 
+ Loss: 0.1550 
+ Best ACC: 0.9258 
+Epoch: 1 
+ Val ACC: 0.9142 
+ Loss: 0.4068 
+ Best ACC: 0.9258 
+Epoch: 1 
+ Val ACC: 0.9160 
+ Loss: 0.4029 
+ Best ACC: 0.9258 
+Epoch: 1 
+ Val ACC: 0.9139 
+ Loss: 0.1054 
+ Best ACC: 0.9258 
+Epoch: 1 
+ Val ACC: 0.9120 
+ Loss: 0.0189 
+ Best ACC: 0.9258 
+Epoch: 1 
+ Val ACC: 0.8913 
+ Loss: 0.0177 
+ Best ACC: 0.9258 
+Epoch: 1 
+ Val ACC: 0.9252 
+ Loss: 0.0690 
+ Best ACC: 0.9258 
+Epoch: 1 
+ Val ACC: 0.9058 
+ Loss: 0.1056 
+ Best ACC: 0.9258 
+Epoch: 1 
+ Val ACC: 0.8748 
+ Loss: 0.1124 
+ Best ACC: 0.9258 
+Epoch: 1 
+ Val ACC: 0.9214 
+ Loss: 0.0827 
+ Best ACC: 0.9258 
+Epoch: 1 
+ Val ACC: 0.9153 
+ Loss: 0.2316 
+ Best ACC: 0.9258 
+Epoch: 1 
+ Val ACC: 0.9183 
+ Loss: 0.1121 
+ Best ACC: 0.9258 
+Epoch: 1 
+ Val ACC: 0.9278 
+ Loss: 0.0304 
+ Best ACC: 0.9278 
+Epoch: 1 
+ Val ACC: 0.9248 
+ Loss: 0.0125 
+ Best ACC: 0.9278 
+Epoch: 1 
+ Val ACC: 0.9239 
+ Loss: 0.0163 
+ Best ACC: 0.9278 
+Epoch: 1 
+ Val ACC: 0.9171 
+ Loss: 0.0211 
+ Best ACC: 0.9278 
+Epoch: 1 
+ Val ACC: 0.9039 
+ Loss: 0.3558 
+ Best ACC: 0.9278 
+Epoch: 1 
+ Val ACC: 0.9178 
+ Loss: 0.1473 
+ Best ACC: 0.9278 
+Epoch: 1 
+ Val ACC: 0.8988 
+ Loss: 0.0634 
+ Best ACC: 0.9278 
+Epoch: 1 
+ Val ACC: 0.9187 
+ Loss: 0.1664 
+ Best ACC: 0.9278 
+Epoch: 1 
+ Val ACC: 0.9137 
+ Loss: 0.1608 
+ Best ACC: 0.9278 
+Epoch: 1 
+ Val ACC: 0.9260 
+ Loss: 0.5648 
+ Best ACC: 0.9278 
+Epoch: 1 
+ Val ACC: 0.9256 
+ Loss: 0.0584 
+ Best ACC: 0.9278 
+Epoch: 1 
+ Val ACC: 0.8775 
+ Loss: 0.3119 
+ Best ACC: 0.9278 
+Epoch: 1 
+ Val ACC: 0.9238 
+ Loss: 0.0341 
+ Best ACC: 0.9278 
+Epoch: 1 
+ Val ACC: 0.8887 
+ Loss: 0.0646 
+ Best ACC: 0.9278 
+Epoch: 1 
+ Val ACC: 0.9152 
+ Loss: 0.2496 
+ Best ACC: 0.9278 
+Epoch: 1 
+ Val ACC: 0.8942 
+ Loss: 0.2821 
+ Best ACC: 0.9278 
+Epoch: 1 
+ Val ACC: 0.9211 
+ Loss: 0.1547 
+ Best ACC: 0.9278 
+Epoch: 1 
+ Val ACC: 0.9225 
+ Loss: 0.8930 
+ Best ACC: 0.9278 
+Epoch: 1 
+ Val ACC: 0.9126 
+ Loss: 0.0396 
+ Best ACC: 0.9278 
+Epoch: 2 
+ Val ACC: 0.9189 
+ Loss: 0.1108 
+ Best ACC: 0.9278 
+Epoch: 2 
+ Val ACC: 0.9291 
+ Loss: 0.0189 
+ Best ACC: 0.9291 
+Epoch: 2 
+ Val ACC: 0.9304 
+ Loss: 0.3369 
+ Best ACC: 0.9304 
+Epoch: 2 
+ Val ACC: 0.9261 
+ Loss: 0.0423 
+ Best ACC: 0.9304 
+Epoch: 2 
+ Val ACC: 0.9118 
+ Loss: 0.0165 
+ Best ACC: 0.9304 
+Epoch: 2 
+ Val ACC: 0.9232 
+ Loss: 0.2809 
+ Best ACC: 0.9304 
+Epoch: 2 
+ Val ACC: 0.8906 
+ Loss: 0.0060 
+ Best ACC: 0.9304 
+Epoch: 2 
+ Val ACC: 0.9126 
+ Loss: 0.0905 
+ Best ACC: 0.9304 
+Epoch: 2 
+ Val ACC: 0.9226 
+ Loss: 0.0843 
+ Best ACC: 0.9304 
+Epoch: 2 
+ Val ACC: 0.9012 
+ Loss: 0.0610 
+ Best ACC: 0.9304 
+Epoch: 2 
+ Val ACC: 0.9293 
+ Loss: 0.0288 
+ Best ACC: 0.9304 
+Epoch: 2 
+ Val ACC: 0.9198 
+ Loss: 0.1127 
+ Best ACC: 0.9304 
+Epoch: 2 
+ Val ACC: 0.9324 
+ Loss: 0.5018 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.8896 
+ Loss: 0.1128 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9083 
+ Loss: 0.1668 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9265 
+ Loss: 0.0241 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9294 
+ Loss: 0.0956 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9143 
+ Loss: 0.6414 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9230 
+ Loss: 0.7967 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9265 
+ Loss: 0.0397 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9164 
+ Loss: 0.1100 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9108 
+ Loss: 0.0416 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9068 
+ Loss: 0.0897 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9263 
+ Loss: 0.0588 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9248 
+ Loss: 0.4945 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9208 
+ Loss: 0.2782 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9181 
+ Loss: 0.1794 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9156 
+ Loss: 0.0090 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9189 
+ Loss: 0.0706 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9189 
+ Loss: 0.0071 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9267 
+ Loss: 0.0112 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9324 
+ Loss: 0.0893 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9277 
+ Loss: 0.0369 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9239 
+ Loss: 0.4251 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9182 
+ Loss: 0.0442 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9143 
+ Loss: 0.2892 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9248 
+ Loss: 0.1650 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9115 
+ Loss: 0.0067 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9249 
+ Loss: 0.3580 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9246 
+ Loss: 0.0085 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9222 
+ Loss: 0.6205 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9201 
+ Loss: 0.1286 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9178 
+ Loss: 0.3054 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9249 
+ Loss: 0.4050 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9233 
+ Loss: 0.1421 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9245 
+ Loss: 0.2432 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9218 
+ Loss: 0.0166 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9271 
+ Loss: 0.1764 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9178 
+ Loss: 0.0788 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9105 
+ Loss: 0.2018 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9180 
+ Loss: 0.0646 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9233 
+ Loss: 0.0014 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9274 
+ Loss: 0.0688 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.8970 
+ Loss: 0.0298 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9268 
+ Loss: 0.0132 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9258 
+ Loss: 0.0639 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9253 
+ Loss: 0.0149 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9240 
+ Loss: 0.0230 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9227 
+ Loss: 0.0694 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9064 
+ Loss: 0.0035 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9276 
+ Loss: 0.0187 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.8975 
+ Loss: 0.3018 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9227 
+ Loss: 0.1396 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9048 
+ Loss: 0.3888 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9269 
+ Loss: 0.0150 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9118 
+ Loss: 0.0281 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9297 
+ Loss: 0.0457 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9201 
+ Loss: 0.0337 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9323 
+ Loss: 0.0045 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9242 
+ Loss: 0.0140 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9149 
+ Loss: 0.0121 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9098 
+ Loss: 0.4911 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9250 
+ Loss: 0.1975 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9286 
+ Loss: 0.0095 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9201 
+ Loss: 0.2557 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.8977 
+ Loss: 0.7835 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9224 
+ Loss: 0.0143 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.8781 
+ Loss: 0.0521 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9027 
+ Loss: 0.0033 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9190 
+ Loss: 0.0204 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9212 
+ Loss: 0.5529 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9289 
+ Loss: 0.0418 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9181 
+ Loss: 0.0227 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9245 
+ Loss: 0.0220 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9247 
+ Loss: 0.0332 
+ Best ACC: 0.9324 
+Epoch: 2 
+ Val ACC: 0.9105 
+ Loss: 0.1064 
+ Best ACC: 0.9324 
+Epoch: 3 
+ Val ACC: 0.8957 
+ Loss: 0.0048 
+ Best ACC: 0.9324 
+Epoch: 3 
+ Val ACC: 0.9181 
+ Loss: 0.0313 
+ Best ACC: 0.9324 
+Epoch: 3 
+ Val ACC: 0.9299 
+ Loss: 0.0139 
+ Best ACC: 0.9324 
+Epoch: 3 
+ Val ACC: 0.9003 
+ Loss: 0.0295 
+ Best ACC: 0.9324 
+Epoch: 3 
+ Val ACC: 0.9236 
+ Loss: 0.0385 
+ Best ACC: 0.9324 
+Epoch: 3 
+ Val ACC: 0.9281 
+ Loss: 0.0095 
+ Best ACC: 0.9324 
+Epoch: 3 
+ Val ACC: 0.9191 
+ Loss: 0.3409 
+ Best ACC: 0.9324 
+Epoch: 3 
+ Val ACC: 0.9198 
+ Loss: 0.0164 
+ Best ACC: 0.9324 
+Epoch: 3 
+ Val ACC: 0.9218 
+ Loss: 0.0221 
+ Best ACC: 0.9324 
+Epoch: 3 
+ Val ACC: 0.9216 
+ Loss: 0.1993 
+ Best ACC: 0.9324 
+Epoch: 3 
+ Val ACC: 0.9187 
+ Loss: 0.4255 
+ Best ACC: 0.9324 
+Epoch: 3 
+ Val ACC: 0.9262 
+ Loss: 0.0072 
+ Best ACC: 0.9324 
+Epoch: 3 
+ Val ACC: 0.9248 
+ Loss: 0.0804 
+ Best ACC: 0.9324 
+Epoch: 3 
+ Val ACC: 0.9233 
+ Loss: 0.0413 
+ Best ACC: 0.9324 
+Epoch: 3 
+ Val ACC: 0.9205 
+ Loss: 0.0213 
+ Best ACC: 0.9324 
+Epoch: 3 
+ Val ACC: 0.8718 
+ Loss: 0.0610 
+ Best ACC: 0.9324 
+Epoch: 3 
+ Val ACC: 0.9196 
+ Loss: 0.0773 
+ Best ACC: 0.9324 
+Epoch: 3 
+ Val ACC: 0.9267 
+ Loss: 0.1586 
+ Best ACC: 0.9324 
+Epoch: 3 
+ Val ACC: 0.8997 
+ Loss: 0.0138 
+ Best ACC: 0.9324 
+Epoch: 3 
+ Val ACC: 0.9281 
+ Loss: 0.0948 
+ Best ACC: 0.9324 
+Epoch: 3 
+ Val ACC: 0.9030 
+ Loss: 0.0009 
+ Best ACC: 0.9324 
+Epoch: 3 
+ Val ACC: 0.9223 
+ Loss: 0.3031 
+ Best ACC: 0.9324 
+Epoch: 3 
+ Val ACC: 0.9060 
+ Loss: 0.0764 
+ Best ACC: 0.9324 
+Epoch: 3 
+ Val ACC: 0.9323 
+ Loss: 0.0164 
+ Best ACC: 0.9324 
+Epoch: 3 
+ Val ACC: 0.9246 
+ Loss: 0.0825 
+ Best ACC: 0.9324 
+Epoch: 3 
+ Val ACC: 0.9125 
+ Loss: 0.0208 
+ Best ACC: 0.9324 
+Epoch: 3 
+ Val ACC: 0.9064 
+ Loss: 0.0368 
+ Best ACC: 0.9324 
+Epoch: 3 
+ Val ACC: 0.9310 
+ Loss: 0.0125 
+ Best ACC: 0.9324 
+Epoch: 3 
+ Val ACC: 0.9221 
+ Loss: 0.0084 
+ Best ACC: 0.9324 
+Epoch: 3 
+ Val ACC: 0.9268 
+ Loss: 0.1416 
+ Best ACC: 0.9324 
+Epoch: 3 
+ Val ACC: 0.9189 
+ Loss: 0.3175 
+ Best ACC: 0.9324 
+Epoch: 3 
+ Val ACC: 0.9230 
+ Loss: 0.0574 
+ Best ACC: 0.9324 
+Epoch: 3 
+ Val ACC: 0.9258 
+ Loss: 0.0279 
+ Best ACC: 0.9324 
+Epoch: 3 
+ Val ACC: 0.9347 
+ Loss: 0.0502 
+ Best ACC: 0.9347 
+Epoch: 3 
+ Val ACC: 0.9213 
+ Loss: 0.0121 
+ Best ACC: 0.9347 
+Epoch: 3 
+ Val ACC: 0.9223 
+ Loss: 0.1196 
+ Best ACC: 0.9347 
+Epoch: 3 
+ Val ACC: 0.9277 
+ Loss: 0.0083 
+ Best ACC: 0.9347 
+Epoch: 3 
+ Val ACC: 0.9217 
+ Loss: 0.1304 
+ Best ACC: 0.9347 
+Epoch: 3 
+ Val ACC: 0.9262 
+ Loss: 0.1176 
+ Best ACC: 0.9347 
+Epoch: 3 
+ Val ACC: 0.9272 
+ Loss: 0.0011 
+ Best ACC: 0.9347 
+Epoch: 3 
+ Val ACC: 0.9265 
+ Loss: 0.6329 
+ Best ACC: 0.9347 
+Epoch: 3 
+ Val ACC: 0.9262 
+ Loss: 0.3319 
+ Best ACC: 0.9347 
+Epoch: 3 
+ Val ACC: 0.9121 
+ Loss: 0.0351 
+ Best ACC: 0.9347 
+Epoch: 3 
+ Val ACC: 0.9283 
+ Loss: 0.1393 
+ Best ACC: 0.9347 
+Epoch: 3 
+ Val ACC: 0.9279 
+ Loss: 0.0352 
+ Best ACC: 0.9347 
+Epoch: 3 
+ Val ACC: 0.9192 
+ Loss: 0.0236 
+ Best ACC: 0.9347 
+Epoch: 3 
+ Val ACC: 0.9268 
+ Loss: 0.0194 
+ Best ACC: 0.9347 
+Epoch: 3 
+ Val ACC: 0.9348 
+ Loss: 0.0104 
+ Best ACC: 0.9348 
+Epoch: 3 
+ Val ACC: 0.9324 
+ Loss: 0.0975 
+ Best ACC: 0.9348 
+Epoch: 3 
+ Val ACC: 0.8888 
+ Loss: 0.7126 
+ Best ACC: 0.9348 
+Epoch: 3 
+ Val ACC: 0.9252 
+ Loss: 0.2411 
+ Best ACC: 0.9348 
+Epoch: 3 
+ Val ACC: 0.9259 
+ Loss: 0.0071 
+ Best ACC: 0.9348 
+Epoch: 3 
+ Val ACC: 0.9304 
+ Loss: 0.0052 
+ Best ACC: 0.9348 
+Epoch: 3 
+ Val ACC: 0.9259 
+ Loss: 0.0330 
+ Best ACC: 0.9348 
+Epoch: 3 
+ Val ACC: 0.9341 
+ Loss: 0.1860 
+ Best ACC: 0.9348 
+Epoch: 3 
+ Val ACC: 0.9332 
+ Loss: 0.0019 
+ Best ACC: 0.9348 
+Epoch: 3 
+ Val ACC: 0.9177 
+ Loss: 0.2962 
+ Best ACC: 0.9348 
+Epoch: 3 
+ Val ACC: 0.9191 
+ Loss: 0.0181 
+ Best ACC: 0.9348 
+Epoch: 3 
+ Val ACC: 0.9166 
+ Loss: 0.1020 
+ Best ACC: 0.9348 
+Epoch: 3 
+ Val ACC: 0.9213 
+ Loss: 0.2762 
+ Best ACC: 0.9348 
+Epoch: 3 
+ Val ACC: 0.9050 
+ Loss: 0.1269 
+ Best ACC: 0.9348 
+Epoch: 3 
+ Val ACC: 0.9303 
+ Loss: 0.0104 
+ Best ACC: 0.9348 
+Epoch: 3 
+ Val ACC: 0.9082 
+ Loss: 0.0714 
+ Best ACC: 0.9348 
+Epoch: 3 
+ Val ACC: 0.9109 
+ Loss: 0.2781 
+ Best ACC: 0.9348 
+Epoch: 3 
+ Val ACC: 0.9270 
+ Loss: 0.0186 
+ Best ACC: 0.9348 
+Epoch: 3 
+ Val ACC: 0.9155 
+ Loss: 0.0509 
+ Best ACC: 0.9348 
+Epoch: 3 
+ Val ACC: 0.9245 
+ Loss: 0.0204 
+ Best ACC: 0.9348 
+Epoch: 3 
+ Val ACC: 0.9272 
+ Loss: 0.0662 
+ Best ACC: 0.9348 
+Epoch: 3 
+ Val ACC: 0.9242 
+ Loss: 0.0620 
+ Best ACC: 0.9348 
+Epoch: 3 
+ Val ACC: 0.9247 
+ Loss: 0.1188 
+ Best ACC: 0.9348 
+Epoch: 3 
+ Val ACC: 0.9330 
+ Loss: 0.0640 
+ Best ACC: 0.9348 
+Epoch: 3 
+ Val ACC: 0.9297 
+ Loss: 0.0978 
+ Best ACC: 0.9348 
+Epoch: 3 
+ Val ACC: 0.9317 
+ Loss: 0.0384 
+ Best ACC: 0.9348 
+Epoch: 3 
+ Val ACC: 0.9198 
+ Loss: 0.3323 
+ Best ACC: 0.9348 
+Epoch: 3 
+ Val ACC: 0.9323 
+ Loss: 0.0846 
+ Best ACC: 0.9348 
+Epoch: 3 
+ Val ACC: 0.9312 
+ Loss: 0.0062 
+ Best ACC: 0.9348 
+Epoch: 3 
+ Val ACC: 0.9337 
+ Loss: 0.0021 
+ Best ACC: 0.9348 
+Epoch: 3 
+ Val ACC: 0.9246 
+ Loss: 0.0046 
+ Best ACC: 0.9348 
+Epoch: 3 
+ Val ACC: 0.8999 
+ Loss: 0.0055 
+ Best ACC: 0.9348 
+Epoch: 3 
+ Val ACC: 0.9148 
+ Loss: 0.0025 
+ Best ACC: 0.9348 
+Epoch: 3 
+ Val ACC: 0.9263 
+ Loss: 0.0104 
+ Best ACC: 0.9348 
+Epoch: 3 
+ Val ACC: 0.9288 
+ Loss: 0.0139 
+ Best ACC: 0.9348 
+Epoch: 3 
+ Val ACC: 0.9299 
+ Loss: 0.0067 
+ Best ACC: 0.9348 
+Epoch: 3 
+ Val ACC: 0.9114 
+ Loss: 0.0720 
+ Best ACC: 0.9348 
+Epoch: 3 
+ Val ACC: 0.9325 
+ Loss: 0.2724 
+ Best ACC: 0.9348 
+Epoch: 3 
+ Val ACC: 0.9079 
+ Loss: 0.0423 
+ Best ACC: 0.9348 
+Epoch: 4 
+ Val ACC: 0.9172 
+ Loss: 0.0197 
+ Best ACC: 0.9348 
+Epoch: 4 
+ Val ACC: 0.9255 
+ Loss: 0.0286 
+ Best ACC: 0.9348 
+Epoch: 4 
+ Val ACC: 0.9252 
+ Loss: 0.0217 
+ Best ACC: 0.9348 
+Epoch: 4 
+ Val ACC: 0.9311 
+ Loss: 0.0101 
+ Best ACC: 0.9348 
+Epoch: 4 
+ Val ACC: 0.9302 
+ Loss: 0.0830 
+ Best ACC: 0.9348 
+Epoch: 4 
+ Val ACC: 0.9292 
+ Loss: 0.0714 
+ Best ACC: 0.9348 
+Epoch: 4 
+ Val ACC: 0.9303 
+ Loss: 0.3619 
+ Best ACC: 0.9348 
+Epoch: 4 
+ Val ACC: 0.9271 
+ Loss: 0.3991 
+ Best ACC: 0.9348 
+Epoch: 4 
+ Val ACC: 0.9164 
+ Loss: 0.0210 
+ Best ACC: 0.9348 
+Epoch: 4 
+ Val ACC: 0.9280 
+ Loss: 0.3581 
+ Best ACC: 0.9348 
+Epoch: 4 
+ Val ACC: 0.9221 
+ Loss: 0.7037 
+ Best ACC: 0.9348 
+Epoch: 4 
+ Val ACC: 0.9318 
+ Loss: 0.0670 
+ Best ACC: 0.9348 
+Epoch: 4 
+ Val ACC: 0.9288 
+ Loss: 0.0186 
+ Best ACC: 0.9348 
+Epoch: 4 
+ Val ACC: 0.9233 
+ Loss: 0.1600 
+ Best ACC: 0.9348 
+Epoch: 4 
+ Val ACC: 0.9330 
+ Loss: 0.0029 
+ Best ACC: 0.9348 
+Epoch: 4 
+ Val ACC: 0.9204 
+ Loss: 0.0097 
+ Best ACC: 0.9348 
+Epoch: 4 
+ Val ACC: 0.9317 
+ Loss: 0.2290 
+ Best ACC: 0.9348 
+Epoch: 4 
+ Val ACC: 0.9000 
+ Loss: 0.0895 
+ Best ACC: 0.9348 
+Epoch: 4 
+ Val ACC: 0.9312 
+ Loss: 0.0127 
+ Best ACC: 0.9348 
+Epoch: 4 
+ Val ACC: 0.9260 
+ Loss: 0.0092 
+ Best ACC: 0.9348 
+Epoch: 4 
+ Val ACC: 0.9286 
+ Loss: 0.0125 
+ Best ACC: 0.9348 
+Epoch: 4 
+ Val ACC: 0.9220 
+ Loss: 0.0515 
+ Best ACC: 0.9348 
+Epoch: 4 
+ Val ACC: 0.9165 
+ Loss: 0.0020 
+ Best ACC: 0.9348 
+Epoch: 4 
+ Val ACC: 0.9402 
+ Loss: 0.0140 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9288 
+ Loss: 0.0078 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9131 
+ Loss: 0.0078 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9358 
+ Loss: 0.0226 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9368 
+ Loss: 0.4359 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9168 
+ Loss: 0.0073 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9184 
+ Loss: 0.0036 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9260 
+ Loss: 0.0365 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9280 
+ Loss: 0.0233 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9352 
+ Loss: 0.3532 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9256 
+ Loss: 0.0219 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9353 
+ Loss: 0.0322 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9297 
+ Loss: 0.3744 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9293 
+ Loss: 0.0577 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9262 
+ Loss: 0.1414 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9319 
+ Loss: 0.0425 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9290 
+ Loss: 0.0383 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9229 
+ Loss: 0.1536 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9239 
+ Loss: 0.0019 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9306 
+ Loss: 0.0887 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9175 
+ Loss: 0.0074 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9309 
+ Loss: 0.0149 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9215 
+ Loss: 0.0014 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9296 
+ Loss: 0.0801 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9251 
+ Loss: 0.8160 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9189 
+ Loss: 0.1333 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9314 
+ Loss: 0.0044 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9241 
+ Loss: 0.0072 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9337 
+ Loss: 0.0789 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9144 
+ Loss: 0.0194 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9348 
+ Loss: 0.0041 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.8634 
+ Loss: 0.0222 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9330 
+ Loss: 0.0517 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9262 
+ Loss: 0.0334 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9324 
+ Loss: 0.1164 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9092 
+ Loss: 0.0270 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9280 
+ Loss: 0.0093 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9190 
+ Loss: 0.0926 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9221 
+ Loss: 0.0372 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9245 
+ Loss: 0.0021 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9224 
+ Loss: 0.0315 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9146 
+ Loss: 0.0165 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9195 
+ Loss: 0.0057 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9101 
+ Loss: 0.1562 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9200 
+ Loss: 0.0031 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9195 
+ Loss: 0.0065 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9273 
+ Loss: 0.1368 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9209 
+ Loss: 0.0050 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9181 
+ Loss: 0.0624 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9230 
+ Loss: 0.0300 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9256 
+ Loss: 0.0205 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9295 
+ Loss: 0.0069 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9253 
+ Loss: 0.1133 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9286 
+ Loss: 0.0713 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9332 
+ Loss: 0.0397 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9259 
+ Loss: 0.2340 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9198 
+ Loss: 0.0043 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9151 
+ Loss: 0.0521 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9303 
+ Loss: 0.0110 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9337 
+ Loss: 0.0028 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9342 
+ Loss: 0.0225 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9169 
+ Loss: 0.0010 
+ Best ACC: 0.9402 
+Epoch: 4 
+ Val ACC: 0.9217 
+ Loss: 0.0120 
+ Best ACC: 0.9402 

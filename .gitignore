@@ -1,0 +1,8 @@
+dataset/
+__pycache__/
+results/
+logs/
+uploads/
+test_results/
+*.pth
+*.pkl

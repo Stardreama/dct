@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>人脸伪造检测系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+        }
+        .main-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 25px;
+            border: none;
+        }
+        .card-header {
+            background-color: #364f6b;
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+            padding: 15px 20px;
+            font-weight: bold;
+        }
+        .upload-container {
+            background-color: #f1f7fe;
+            border: 2px dashed #c3d4e6;
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .upload-container:hover, .upload-container.drag-over {
+            border-color: #3498db;
+            background-color: #e6f2ff;
+        }
+        .upload-container.drag-over {
+            transform: scale(1.02);
+        }
+        .upload-icon {
+            font-size: 48px;
+            color: #3498db;
+            margin-bottom: 15px;
+        }
+        .result-container {
+            display: none;
+        }
+        .prediction-badge {
+            font-size: 1.2rem;
+            padding: 8px 16px;
+            border-radius: 20px;
+        }
+        .real {
+            background-color: #28a745;
+        }
+        .fake {
+            background-color: #dc3545;
+        }
+        .progress {
+            height: 10px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+        }
+        .img-container {
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        #loading {
+            display: none;
+            text-align: center;
+            padding: 30px;
+        }
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+        }
+        .stats-container {
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .stats-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .nav-tabs {
+            border-bottom: 2px solid #dee2e6;
+        }
+        .nav-tabs .nav-link {
+            border: none;
+            color: #495057;
+            font-weight: 500;
+            padding: 12px 16px;
+        }
+        .nav-tabs .nav-link.active {
+            color: #3498db;
+            border-bottom: 3px solid #3498db;
+        }
+        footer {
+            margin-top: 30px;
+            padding: 20px 0;
+            text-align: center;
+            background-color: #f1f1f1;
+            border-radius: 15px;
+        }
+        .preview-container {
+            margin-top: 15px;
+            text-align: center;
+            display: none;
+        }
+        .preview-image {
+            max-width: 300px;
+            max-height: 300px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .preview-file-name {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <header class="text-center my-4">
+            <h1 class="display-4 fw-bold text-primary">人脸伪造检测系统</h1>
+            <p class="lead text-muted">基于深度学习的人脸伪造检测技术</p>
+        </header>
+
+        <ul class="nav nav-tabs mb-4">
+            <li class="nav-item">
+                <a class="nav-link active" href="/">检测工具</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/about">关于系统</a>
+            </li>
+        </ul>
+        
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-image me-2"></i>上传图像
+            </div>
+            <div class="card-body">
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <div class="upload-container" id="dropZone">
+                        <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                        <h5>拖放图像到此处或点击选择文件</h5>
+                        <p class="text-muted">支持 JPG、PNG、JPEG 格式</p>
+                        <input type="file" class="d-none" id="fileInput" name="file" accept="image/*">
+                        <button type="button" class="btn btn-primary mt-3" id="browseBtn">
+                            <i class="fas fa-folder-open me-2"></i>浏览文件
+                        </button>
+                        
+                        <!-- 图像预览区域 -->
+                        <div class="preview-container" id="previewContainer">
+                            <img src="" alt="预览" class="preview-image" id="previewImage">
+                            <div class="preview-file-name" id="previewFileName"></div>
+                            <div class="mt-3">
+                                <button type="button" class="btn btn-success me-2" id="uploadBtn">
+                                    <i class="fas fa-check me-2"></i>开始检测
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" id="cancelBtn">
+                                    <i class="fas fa-times me-2"></i>取消
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+                
+                <div id="loading" class="mt-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-3">正在分析图像，请稍候...</p>
+                </div>
+            </div>
+        </div>
+        
+        <div id="resultContainer" class="card result-container">
+            <div class="card-header">
+                <i class="fas fa-chart-bar me-2"></i>检测结果
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <h4>判断结果:</h4>
+                    <span id="predictionBadge" class="prediction-badge text-white"></span>
+                    <p class="text-muted mt-2" id="inferenceTime"></p>
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-lg-6 mb-3">
+                        <div class="stats-container">
+                            <h5 class="mb-3">检测概率</h5>
+                            <div class="stats-item">
+                                <span>真实图像概率:</span>
+                                <span id="realProb" class="fw-bold"></span>
+                            </div>
+                            <div class="progress">
+                                <div id="realProbBar" class="progress-bar bg-success" role="progressbar"></div>
+                            </div>
+                            
+                            <div class="stats-item mt-3">
+                                <span>伪造图像概率:</span>
+                                <span id="fakeProb" class="fw-bold"></span>
+                            </div>
+                            <div class="progress">
+                                <div id="fakeProbBar" class="progress-bar bg-danger" role="progressbar"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="stats-container h-100">
+                            <h5 class="mb-3">检测说明</h5>
+                            <div id="realImageDesc" style="display: none;">
+                                <p><i class="fas fa-check-circle text-success me-2"></i>该图像被判断为<strong class="text-success">真实图像</strong>，没有发现明显伪造痕迹。</p>
+                                <p class="small text-muted">系统认为这是一张未经AI生成或修改的真实照片。</p>
+                            </div>
+                            <div id="fakeImageDesc" style="display: none;">
+                                <p><i class="fas fa-exclamation-triangle text-danger me-2"></i>该图像被判断为<strong class="text-danger">伪造图像</strong>，检测到人工生成特征。</p>
+                                <p class="small text-muted">系统发现该图像可能是通过AI技术（如Deepfakes、Face2Face等）生成或修改的。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-4">
+                        <h5>原始图像</h5>
+                        <div class="img-container">
+                            <img id="originalImage" class="img-fluid" src="" alt="原始图像">
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-4">
+                        <h5>检测结果</h5>
+                        <div class="img-container">
+                            <img id="resultImage" class="img-fluid" src="" alt="检测结果">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-center mt-3">
+                    <button id="resetBtn" class="btn btn-outline-primary">
+                        <i class="fas fa-redo me-2"></i>重新检测
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-chart-line me-2"></i>系统表现
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>总体性能</h5>
+                        <div class="stats-container">
+                            <div class="stats-item">
+                                <span>准确率:</span>
+                                <span class="fw-bold">{{ test_results.overall_accuracy }}</span>
+                            </div>
+                            <div class="stats-item">
+                                <span>AUC值:</span>
+                                <span class="fw-bold">{{ test_results.overall_auc }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>各伪造类型表现</h5>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>伪造类型</th>
+                                        <th>准确率</th>
+                                        <th>AUC</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for type in test_results.forgery_types %}
+                                    <tr>
+                                        <td>{{ type['Forgery Type'] }}</td>
+                                        <td>{{ "%.4f"|format(type.accuracy) }}</td>
+                                        <td>{{ "%.4f"|format(type.auc) }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p class="mb-0">© 2025 人脸伪造检测系统 - 基于F3-Net</p>
+        </footer>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            // DOM元素
+            const dropZone = document.getElementById('dropZone');
+            const fileInput = document.getElementById('fileInput');
+            const previewContainer = document.getElementById('previewContainer');
+            const previewImage = document.getElementById('previewImage');
+            const previewFileName = document.getElementById('previewFileName');
+            const uploadBtn = document.getElementById('uploadBtn');
+            const cancelBtn = document.getElementById('cancelBtn');
+            const browseBtn = document.getElementById('browseBtn');
+            
+            let selectedFile = null;
+            
+            // 文件选择按钮
+            browseBtn.addEventListener('click', function() {
+                fileInput.click();
+            });
+            
+            // 处理文件选择
+            fileInput.addEventListener('change', function() {
+                if (this.files.length > 0) {
+                    handleFiles(this.files);
+                }
+            });
+            
+            // 拖放区域的事件处理
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, preventDefaults, false);
+            });
+            
+            // 高亮拖放区域
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, highlight, false);
+            });
+            
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, unhighlight, false);
+            });
+            
+            // 处理拖放操作
+            dropZone.addEventListener('drop', handleDrop, false);
+            
+            // 上传按钮
+            uploadBtn.addEventListener('click', function() {
+                if (selectedFile) {
+                    uploadFile(selectedFile);
+                }
+            });
+            
+            // 取消按钮
+            cancelBtn.addEventListener('click', function() {
+                resetUploadForm();
+            });
+            
+            // 重置按钮
+            $("#resetBtn").click(function() {
+                resetAll();
+            });
+            
+            // 阻止默认行为
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            
+            // 高亮拖放区域
+            function highlight() {
+                dropZone.classList.add('drag-over');
+            }
+            
+            // 移除高亮
+            function unhighlight() {
+                dropZone.classList.remove('drag-over');
+            }
+            
+            // 处理拖放操作
+            function handleDrop(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                
+                if (files.length > 0) {
+                    handleFiles(files);
+                }
+            }
+            
+            // 处理选择的文件
+            function handleFiles(files) {
+                selectedFile = files[0];
+                
+                // 检查文件类型
+                if (!selectedFile.type.match('image.*')) {
+                    alert('请上传图片文件！');
+                    resetUploadForm();
+                    return;
+                }
+                
+                // 显示预览
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewImage.src = e.target.result;
+                    previewFileName.textContent = selectedFile.name;
+                    
+                    // 隐藏上传区域内容，显示预览
+                    document.querySelector('.upload-icon').style.display = 'none';
+                    document.querySelector('#dropZone h5').style.display = 'none';
+                    document.querySelector('#dropZone p.text-muted').style.display = 'none';
+                    document.querySelector('#browseBtn').style.display = 'none';
+                    previewContainer.style.display = 'block';
+                };
+                reader.readAsDataURL(selectedFile);
+            }
+            
+            // 重置上传表单
+            function resetUploadForm() {
+                selectedFile = null;
+                fileInput.value = '';
+                
+                // 重置界面
+                document.querySelector('.upload-icon').style.display = 'block';
+                document.querySelector('#dropZone h5').style.display = 'block';
+                document.querySelector('#dropZone p.text-muted').style.display = 'block';
+                document.querySelector('#browseBtn').style.display = 'inline-block';
+                previewContainer.style.display = 'none';
+            }
+            
+            // 完全重置
+            function resetAll() {
+                resetUploadForm();
+                $('#resultContainer').hide();
+                $('#uploadForm').show();
+            }
+            
+            // 上传并分析文件
+            function uploadFile(file) {
+                // 创建FormData
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                // 显示加载状态
+                $('#uploadForm').hide();
+                $("#loading").show();
+                
+                // 发送请求
+                $.ajax({
+                    url: '/predict',
+                    type: 'POST',
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    success: function(response) {
+                        $("#loading").hide();
+                        
+                        if (!response.success) {
+                            alert('错误: ' + response.error);
+                            $('#uploadForm').show();
+                            resetUploadForm();
+                            return;
+                        }
+                        
+                        // 处理结果
+                        updateResults(response);
+                    },
+                    error: function() {
+                        $("#loading").hide();
+                        $('#uploadForm').show();
+                        resetUploadForm();
+                        alert('服务器错误，请稍后重试！');
+                    }
+                });
+            }
+            
+            // 更新结果显示
+            function updateResults(data) {
+                // 设置预测结果标签
+                if (data.prediction === 'REAL') {
+                    $("#predictionBadge").text("真实图像").removeClass("fake").addClass("real");
+                    $("#realImageDesc").show();
+                    $("#fakeImageDesc").hide();
+                } else {
+                    $("#predictionBadge").text("伪造图像").removeClass("real").addClass("fake");
+                    $("#realImageDesc").hide();
+                    $("#fakeImageDesc").show();
+                }
+                
+                // 设置概率
+                const realProb = (data.real_probability * 100).toFixed(2);
+                const fakeProb = (data.fake_probability * 100).toFixed(2);
+                
+                $("#realProb").text(`${realProb}%`);
+                $("#fakeProb").text(`${fakeProb}%`);
+                
+                $("#realProbBar").css("width", `${realProb}%`);
+                $("#fakeProbBar").css("width", `${fakeProb}%`);
+                
+                // 设置图像
+                $("#originalImage").attr("src", data.original_image);
+                $("#resultImage").attr("src", data.result_image);
+                
+                // 显示推理时间
+                if(data.inference_time) {
+                    $("#inferenceTime").text(`推理时间: ${data.inference_time}`);
+                } else {
+                    $("#inferenceTime").text('');
+                }
+                
+                // 显示结果容器
+                $("#resultContainer").show();
+            }
+        });
+    </script>
+</body>
+</html>
