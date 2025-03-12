@@ -1,0 +1,687 @@
+import sys
+import os
+# 添加父目录到路径
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+import torch
+import torchvision.transforms as transforms
+from PIL import Image
+import yaml
+import easydict
+from trainer import Trainer, EnhancedTrainer
+import numpy as np
+import cv2
+import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('Agg')  # 不使用GUI后端
+import matplotlib.font_manager as fm
+from matplotlib.font_manager import FontProperties
+from pathlib import Path
+import time
+from tqdm import tqdm
+from collections import defaultdict
+import glob
+import json
+from scipy.special import softmax
+import torch.nn.functional as F
+
+
+class EnhancedFaceForensicsPredictor:
+    def __init__(self, model_paths=None, config_path='./config.yaml', use_ensemble=False, 
+                 use_enhanced_model=True, device=None):
+        """
+        增强版人脸伪造检测预测器
+        
+        Args:
+            model_paths: 单个模型路径或模型路径列表(用于集成)
+            config_path: 配置文件路径
+            use_ensemble: 是否使用模型集成
+            use_enhanced_model: 是否使用增强版模型
+            device: 计算设备
+        """
+        print("初始化增强版伪造检测预测器...")
+        
+        # 设置中文字体
+        self.setup_chinese_font()
+        
+        # 加载配置
+        with open(config_path, 'r') as stream:
+            config = yaml.safe_load(stream)
+        self.config = easydict.EasyDict(config)
+        
+        # 设置设备
+        if device is None:
+            self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        else:
+            self.device = device
+        print(f"使用设备: {self.device}")
+        
+        # 图像预处理
+        self.transform = transforms.Compose([
+            transforms.Resize((256, 256)),
+            transforms.ToTensor(),
+            transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
+        ])
+        
+        # 使用集成时需要多个模型路径
+        self.use_ensemble = use_ensemble
+        
+        # 预训练模型路径
+        pretrained_path = './pretrained/xception-b5690688.pth'
+        
+        # 确保model_paths是列表
+        if model_paths is None:
+            model_paths = ['./checkpoints/FAD_RGB_F2Fc0/best.pkl']
+        elif isinstance(model_paths, str):
+            model_paths = [model_paths]
+            
+        self.models = []
+        self.model_weights = []  # 模型权重，可后续调整
+        
+        # 加载所有模型
+        for model_path in model_paths:
+            print(f"加载模型: {model_path}")
+            
+            if use_enhanced_model:
+                # 使用增强版模型
+                model = EnhancedTrainer(self.config, [0] if torch.cuda.is_available() else [], 'Both', pretrained_path)
+            else:
+                # 使用原版模型
+                model = Trainer(self.config, [0] if torch.cuda.is_available() else [], 'Both', pretrained_path)
+                
+            # 加载训练好的权重
+            if hasattr(model, 'load'):
+                model.load(model_path)
+            else:
+                model.load_state_dict(torch.load(model_path, map_location=self.device))
+                
+            model = model.to(self.device)
+            model.eval()
+            self.models.append(model)
+            
+            # 默认权重为1.0
+            self.model_weights.append(1.0)
+            
+        # 归一化模型权重
+        if self.model_weights:
+            sum_weights = sum(self.model_weights)
+            self.model_weights = [w/sum_weights for w in self.model_weights]
+        
+        # 后处理配置
+        self.postprocess_config = {
+            'mask_enhancement': True,  # 增强掩码可视化
+            'mask_threshold': 0.5,     # 掩码二值化阈值
+            'smoothing': True,         # 平滑处理
+            'confidence_boost': 0.05   # 置信度提升阈值
+        }
+        
+        # 性能计时器
+        self.timing_stats = {
+            'preprocessing': [],
+            'inference': [],
+            'postprocessing': []
+        }
+        
+        print(f"已加载 {len(self.models)} 个模型")
+    
+    def setup_chinese_font(self):
+        """配置中文字体支持"""
+        # 尝试几种常见的中文字体
+        chinese_fonts = ['SimHei', 'Microsoft YaHei', 'SimSun', 'KaiTi', 'FangSong']
+        font_found = False
+        
+        for font_name in chinese_fonts:
+            try:
+                font_path = fm.findfont(FontProperties(family=font_name))
+                if font_path and not font_path.endswith('DejaVuSans.ttf'):  # 避免使用后备字体
+                    plt.rcParams['font.family'] = [font_name, 'sans-serif']
+                    print(f"使用中文字体: {font_name}")
+                    font_found = True
+                    break
+            except:
+                continue
+        
+        if not font_found:
+            # 如果找不到合适的中文字体，尝试使用系统默认字体
+            print("警告：未找到合适的中文字体，将使用系统默认字体")
+            plt.rcParams['font.sans-serif'] = ['Arial Unicode MS', 'Microsoft YaHei']
+        
+        # 确保可以显示负号
+        plt.rcParams['axes.unicode_minus'] = False
+
+    def predict(self, image_path, return_time_stats=False):
+        """
+        预测单个图像是否为伪造
+        
+        Args:
+            image_path: 图像路径
+            return_time_stats: 是否返回时间统计信息
+            
+        Returns:
+            dict: 预测结果
+        """
+        try:
+            # 预处理计时开始
+            t_start = time.time()
+            
+            # 加载并预处理图像
+            image = Image.open(image_path).convert('RGB')
+            original_size = image.size  # 保存原始尺寸
+            input_tensor = self.transform(image).unsqueeze(0).to(self.device)
+            
+            # 预处理计时结束
+            t_preprocess = time.time() - t_start
+            self.timing_stats['preprocessing'].append(t_preprocess)
+            
+            # 推理计时开始
+            t_start = time.time()
+            
+            # 如果使用集成，则获取所有模型的预测
+            if self.use_ensemble and len(self.models) > 1:
+                all_masks = []
+                all_outputs = []
+                
+                for i, model in enumerate(self.models):
+                    # 前向传播
+                    with torch.no_grad():
+                        mask, outputs = model(input_tensor)
+                        # 应用模型权重
+                        all_masks.append(mask * self.model_weights[i])
+                        all_outputs.append(outputs * self.model_weights[i])
+                
+                # 综合多个模型的预测结果
+                mask = torch.sum(torch.stack(all_masks), dim=0)
+                outputs = torch.sum(torch.stack(all_outputs), dim=0)
+            else:
+                # 单模型预测
+                with torch.no_grad():
+                    mask, outputs = self.models[0](input_tensor)
+            
+            # 获取预测结果
+            probs = torch.nn.Softmax(dim=1)(outputs)
+            _, predicted = torch.max(outputs.data, 1)
+            
+            # 推理计时结束
+            t_inference = time.time() - t_start
+            self.timing_stats['inference'].append(t_inference)
+            
+            # 后处理计时开始
+            t_start = time.time()
+            
+            # 处理结果
+            prediction = "FAKE" if predicted.item() == 1 else "REAL"
+            real_prob = probs[0][0].item()
+            fake_prob = probs[0][1].item()
+            
+            # 应用置信度提升 (如果伪造概率接近阈值)
+            threshold = 0.5
+            confidence_boost = self.postprocess_config['confidence_boost']
+            
+            if fake_prob > threshold - confidence_boost and fake_prob < threshold + confidence_boost:
+                # 检查是否有明显的掩码区域
+                mask_np = mask.cpu().numpy()
+                if np.max(mask_np) > self.postprocess_config['mask_threshold']:
+                    # 有明显掩码，提高伪造概率
+                    fake_prob = min(fake_prob + confidence_boost, 1.0)
+                    real_prob = max(1.0 - fake_prob, 0.0)
+                    prediction = "FAKE"
+            
+            # 处理掩码
+            mask_np = mask.cpu().squeeze().numpy()
+            
+            # 应用掩码增强
+            if self.postprocess_config['mask_enhancement']:
+                mask_enhanced = self.enhance_mask(mask_np)
+            else:
+                mask_enhanced = mask_np
+                
+            # 如果启用平滑处理
+            if self.postprocess_config['smoothing']:
+                mask_enhanced = cv2.GaussianBlur(mask_enhanced, (5, 5), 0)
+            
+            # 二值化掩码（可选）
+            # mask_binary = (mask_enhanced > self.postprocess_config['mask_threshold']).astype(np.float32)
+            
+            # 创建热图
+            heatmap = None
+            if mask_enhanced is not None:
+                try:
+                    # 归一化掩码
+                    normalized_mask = (mask_enhanced * 255).astype(np.uint8)
+                    heatmap = cv2.applyColorMap(normalized_mask, cv2.COLORMAP_JET)
+                    heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
+                except Exception as e:
+                    print(f"创建热图时出错: {e}")
+            
+            # 后处理计时结束
+            t_postprocess = time.time() - t_start
+            self.timing_stats['postprocessing'].append(t_postprocess)
+            
+            # 构建结果
+            result = {
+                'success': True,
+                'prediction': prediction,
+                'is_fake': predicted.item() == 1,
+                'real_probability': real_prob,
+                'fake_probability': fake_prob,
+                'mask': mask_enhanced,
+                'heatmap': heatmap,
+                'original_size': original_size
+            }
+            
+            # 添加时间统计（如果需要）
+            if return_time_stats:
+                result['time_stats'] = {
+                    'preprocessing': t_preprocess,
+                    'inference': t_inference, 
+                    'postprocessing': t_postprocess,
+                    'total': t_preprocess + t_inference + t_postprocess
+                }
+                
+            return result
+            
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return {
+                'success': False,
+                'error': str(e)
+            }
+
+    def enhance_mask(self, mask_np):
+        """
+        增强掩码对比度和可见性
+        
+        Args:
+            mask_np: 原始掩码数组
+            
+        Returns:
+            ndarray: 增强后的掩码
+        """
+        # 计算范围
+        mask_min = mask_np.min()
+        mask_max = mask_np.max()
+        mask_range = mask_max - mask_min
+        
+        # 如果范围太小，使用更激进的标准化方法
+        if mask_range < 0.1:
+            # 方法1: 尝试使用均值和标准差标准化
+            mean = mask_np.mean()
+            std = mask_np.std()
+            
+            if std > 0.001:  # 确保标准差不是太小
+                mask_normalized = (mask_np - mean) / (std + 1e-8)
+                # 再次线性拉伸到0-1范围
+                new_min = mask_normalized.min()
+                new_max = mask_normalized.max()
+                mask_normalized = (mask_normalized - new_min) / (new_max - new_min + 1e-8)
+            else:
+                # 方法2: 如果标准差也很小，尝试取绝对值后增强
+                mask_abs = np.abs(mask_np)
+                # 找到前10%和后10%的阈值
+                sorted_values = np.sort(mask_abs.flatten())
+                low_threshold = sorted_values[int(len(sorted_values) * 0.1)]
+                high_threshold = sorted_values[int(len(sorted_values) * 0.9)]
+                
+                # 通过阈值截断增强对比度
+                mask_normalized = np.clip(mask_abs, low_threshold, high_threshold)
+                mask_normalized = (mask_normalized - low_threshold) / (high_threshold - low_threshold + 1e-8)
+        else:
+            # 常规的min-max归一化
+            mask_normalized = (mask_np - mask_min) / mask_range
+            
+        return mask_normalized
+
+    def generate_visualization(self, image_path, result, output_path, show_confidence=True):
+        """
+        生成增强版结果可视化
+        
+        Args:
+            image_path: 原始图像路径
+            result: 预测结果
+            output_path: 输出路径
+            show_confidence: 是否显示置信度
+            
+        Returns:
+            bool: 是否成功生成可视化
+        """
+        try:
+            # 确保结果有效
+            if not result['success']:
+                print(f"错误：无法生成可视化，预测失败: {result.get('error', 'Unknown error')}")
+                return False
+                
+            # 加载原始图像
+            original_image = Image.open(image_path).convert('RGB')
+            original_np = np.array(original_image)
+            orig_h, orig_w = original_np.shape[:2]
+            
+            # 创建4面板可视化
+            plt.figure(figsize=(18, 10))
+            
+            # 1. 原始图像
+            plt.subplot(2, 2, 1)
+            plt.imshow(original_image)
+            plt.title("原始图像", fontsize=14)
+            plt.axis('off')
+            
+            # 2. 掩码热图
+            plt.subplot(2, 2, 2)
+            if result.get('mask') is not None:
+                mask = result['mask']
+                # 调整大小以匹配原始图像
+                mask_resized = cv2.resize(mask, (orig_w, orig_h), interpolation=cv2.INTER_LINEAR)
+                plt.imshow(mask_resized, cmap='jet')
+                plt.title("检测掩码 (热图)", fontsize=14)
+            else:
+                plt.title("无掩码数据", fontsize=14)
+            plt.axis('off')
+            
+            # 3. 掩码二值化图
+            plt.subplot(2, 2, 3)
+            if result.get('mask') is not None:
+                # 二值化掩码
+                binary_threshold = self.postprocess_config['mask_threshold']
+                binary_mask = (mask_resized > binary_threshold).astype(np.float32)
+                plt.imshow(binary_mask, cmap='gray')
+                plt.title(f"二值化掩码 (阈值: {binary_threshold})", fontsize=14)
+            else:
+                plt.title("无掩码数据", fontsize=14)
+            plt.axis('off')
+            
+            # 4. 叠加图像
+            plt.subplot(2, 2, 4)
+            if result.get('mask') is not None and result.get('heatmap') is not None:
+                # 调整热图大小
+                heatmap_resized = cv2.resize(result['heatmap'], (orig_w, orig_h), 
+                                          interpolation=cv2.INTER_LINEAR)
+                # 创建叠加图
+                overlay = cv2.addWeighted(original_np, 0.7, heatmap_resized, 0.3, 0)
+                plt.imshow(overlay)
+            else:
+                plt.imshow(original_np)
+                
+            # 设置标题，包含预测和置信度
+            title = f"预测结果: {'伪造图像' if result['is_fake'] else '真实图像'}"
+            if show_confidence:
+                title += f"\n真实概率: {result['real_probability']:.4f}, 伪造概率: {result['fake_probability']:.4f}"
+            plt.title(title, fontsize=14)
+            plt.axis('off')
+            
+            # 确保输出目录存在
+            output_dir = os.path.dirname(output_path)
+            if output_dir and not os.path.exists(output_dir):
+                os.makedirs(output_dir)
+                
+            # 保存图表
+            plt.tight_layout()
+            plt.savefig(output_path, dpi=200, bbox_inches='tight')
+            plt.close()
+            
+            print(f"可视化结果已保存至: {output_path}")
+            return True
+            
+        except Exception as e:
+            print(f"生成可视化结果时出错: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+
+    def batch_predict(self, image_paths, output_dir=None, generate_visuals=True):
+        """
+        批量预测多张图像
+        
+        Args:
+            image_paths: 图像路径列表或目录路径
+            output_dir: 输出目录
+            generate_visuals: 是否生成可视化
+            
+        Returns:
+            dict: 预测结果
+        """
+        # 如果输入是目录，获取所有图像
+        if isinstance(image_paths, str) and os.path.isdir(image_paths):
+            image_paths = [
+                os.path.join(image_paths, f) 
+                for f in os.listdir(image_paths)
+                if f.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.webp'))
+            ]
+        
+        # 创建输出目录
+        if output_dir and not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+            
+        # 初始化结果列表
+        results = []
+        
+        # 批量处理
+        for img_path in tqdm(image_paths, desc="处理图像"):
+            # 获取文件名
+            filename = os.path.basename(img_path)
+            name, ext = os.path.splitext(filename)
+            
+            # 预测
+            result = self.predict(img_path)
+            
+            # 添加图像路径
+            result['image_path'] = img_path
+            
+            # 如果成功预测并需要生成可视化
+            if result['success'] and generate_visuals and output_dir:
+                # 生成可视化
+                vis_path = os.path.join(output_dir, f"{name}_result.png")
+                self.generate_visualization(img_path, result, vis_path)
+                
+                # 添加可视化路径
+                result['visualization_path'] = vis_path
+                
+            # 为了节省内存，删除大型数组
+            if 'mask' in result:
+                del result['mask']
+            if 'heatmap' in result:
+                del result['heatmap']
+                
+            # 添加到结果列表
+            results.append(result)
+            
+        # 如果有输出目录，保存结果摘要
+        if output_dir:
+            # 创建简化的摘要
+            summary = []
+            for result in results:
+                if result['success']:
+                    summary.append({
+                        'image_path': result['image_path'],
+                        'prediction': result['prediction'],
+                        'real_probability': result['real_probability'],
+                        'fake_probability': result['fake_probability'],
+                        'is_fake': result['is_fake']
+                    })
+            
+            # 保存为JSON
+            with open(os.path.join(output_dir, 'prediction_results.json'), 'w') as f:
+                json.dump(summary, f, indent=2)
+                
+            # 创建性能报告
+            if self.timing_stats['inference']:
+                timing_report = {
+                    'preprocessing_avg': np.mean(self.timing_stats['preprocessing']),
+                    'inference_avg': np.mean(self.timing_stats['inference']),
+                    'postprocessing_avg': np.mean(self.timing_stats['postprocessing']),
+                    'total_avg': (
+                        np.mean(self.timing_stats['preprocessing']) + 
+                        np.mean(self.timing_stats['inference']) + 
+                        np.mean(self.timing_stats['postprocessing'])
+                    ),
+                    'images_per_second': 1.0 / (
+                        np.mean(self.timing_stats['preprocessing']) + 
+                        np.mean(self.timing_stats['inference']) + 
+                        np.mean(self.timing_stats['postprocessing'])
+                    )
+                }
+                
+                # 保存性能报告
+                with open(os.path.join(output_dir, 'performance_report.json'), 'w') as f:
+                    json.dump(timing_report, f, indent=2)
+        
+        return results
+
+    def set_model_weights(self, weights):
+        """
+        设置集成中各模型的权重
+        
+        Args:
+            weights: 权重列表
+        """
+        if len(weights) != len(self.models):
+            raise ValueError(f"权重数量 ({len(weights)}) 必须等于模型数量 ({len(self.models)})")
+            
+        # 归一化权重
+        sum_weights = sum(weights)
+        self.model_weights = [w/sum_weights for w in weights]
+        print(f"已更新模型权重: {self.model_weights}")
+    
+    def update_postprocess_config(self, config):
+        """
+        更新后处理配置
+        
+        Args:
+            config: 新的配置字典
+        """
+        self.postprocess_config.update(config)
+        print(f"已更新后处理配置: {self.postprocess_config}")
+        
+    def generate_report(self, results, output_path):
+        """
+        生成分析报告
+        
+        Args:
+            results: 预测结果列表
+            output_path: 输出路径
+        """
+        try:
+            if not results:
+                print("没有结果可供分析")
+                return False
+                
+            # 统计数据
+            total = len(results)
+            successful = sum(1 for r in results if r['success'])
+            fake_count = sum(1 for r in results if r['success'] and r['is_fake'])
+            real_count = successful - fake_count
+            
+            # 概率分布
+            fake_probs = [r['fake_probability'] for r in results if r['success']]
+            
+            # 创建图表
+            plt.figure(figsize=(15, 10))
+            
+            # 饼图
+            plt.subplot(2, 2, 1)
+            plt.pie([real_count, fake_count], labels=['真实', '伪造'], 
+                   autopct='%1.1f%%', startangle=90)
+            plt.title("预测结果分布", fontsize=14)
+            
+            # 直方图
+            plt.subplot(2, 2, 2)
+            plt.hist(fake_probs, bins=20, range=(0, 1), edgecolor='black')
+            plt.title("伪造概率分布", fontsize=14)
+            plt.xlabel("伪造概率")
+            plt.ylabel("图像数量")
+            
+            # 统计信息
+            plt.subplot(2, 2, 3)
+            plt.axis('off')
+            info_text = (
+                f"总样本数: {total}\n"
+                f"成功预测: {successful}\n"
+                f"伪造预测: {fake_count} ({fake_count/successful*100:.1f}%)\n"
+                f"真实预测: {real_count} ({real_count/successful*100:.1f}%)\n"
+                f"平均伪造概率: {np.mean(fake_probs):.4f}\n"
+                f"伪造概率中位数: {np.median(fake_probs):.4f}\n"
+            )
+            plt.text(0.1, 0.5, info_text, fontsize=12, va='center')
+            
+            # 性能信息
+            if self.timing_stats['inference']:
+                plt.subplot(2, 2, 4)
+                times = [
+                    np.mean(self.timing_stats['preprocessing']),
+                    np.mean(self.timing_stats['inference']),
+                    np.mean(self.timing_stats['postprocessing'])
+                ]
+                labels = ['预处理', '推理', '后处理']
+                plt.bar(labels, times)
+                plt.title("平均处理时间 (秒)", fontsize=14)
+                plt.ylabel("时间 (秒)")
+                
+                # 添加fps信息
+                total_time = sum(times)
+                fps = 1.0 / total_time if total_time > 0 else 0
+                plt.figtext(0.7, 0.25, f"平均处理速度: {fps:.2f} 图像/秒", fontsize=12)
+            
+            # 保存报告
+            plt.tight_layout()
+            plt.savefig(output_path, dpi=200, bbox_inches='tight')
+            plt.close()
+            
+            print(f"分析报告已保存至: {output_path}")
+            return True
+            
+        except Exception as e:
+            print(f"生成报告时出错: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+            
+
+# 为了保持向后兼容性，保留原始类并将其实现委托给增强版
+class FaceForensicsPredictor(EnhancedFaceForensicsPredictor):
+    def __init__(self, model_path='./checkpoints/FAD_RGB_F2Fc0/best.pkl', config_path='./config.yaml'):
+        """初始化模型预测类 - 向后兼容版本"""
+        super().__init__(model_paths=model_path, config_path=config_path, 
+                       use_ensemble=False, use_enhanced_model=False)
+
+
+# 测试代码
+if __name__ == "__main__":
+    # 使用增强版预测器
+    predictor = EnhancedFaceForensicsPredictor(
+        model_paths=[
+            './output/model1_best.pth',
+            './output/model2_best.pth'
+        ],
+        use_ensemble=True,
+        use_enhanced_model=True
+    )
+    
+    # 测试单图预测
+    test_image = "path_to_test_image.jpg"
+    if os.path.exists(test_image):
+        # 进行预测
+        result = predictor.predict(test_image, return_time_stats=True)
+        
+        if result["success"]:
+            print(f"预测结果: {result['prediction']}")
+            print(f"真实概率: {result['real_probability']:.4f}")
+            print(f"伪造概率: {result['fake_probability']:.4f}")
+            
+            # 性能统计
+            if 'time_stats' in result:
+                stats = result['time_stats']
+                print(f"预处理时间: {stats['preprocessing']:.4f}秒")
+                print(f"推理时间: {stats['inference']:.4f}秒")
+                print(f"后处理时间: {stats['postprocessing']:.4f}秒")
+                print(f"总时间: {stats['total']:.4f}秒")
+            
+            # 生成可视化
+            output_path = "test_result.png"
+            predictor.generate_visualization(test_image, result, output_path)
+        else:
+            print(f"预测失败: {result.get('error', '未知错误')}")
+    
+    # 测试批量预测
+    test_dir = "path_to_test_dir"
+    if os.path.exists(test_dir):
+        # 批量处理目录
+        results = predictor# filepath: d:\project\DCT_RGB_HRNet\inference.py

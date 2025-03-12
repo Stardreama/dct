@@ -1,18 +1,105 @@
 GPUS: 1
-LOG_DIR: 'log/'
-OUTPUT_DIR: 'output/'
+LOG_DIR: "log/"
+OUTPUT_DIR: "output/"
 WORKERS: 8
 PRINT_FREQ: 1000
 TRAIN_PATH: "D:/project/DCT_RGB_HRNet/dataset"
 VAL_PATH: "D:/project/DCT_RGB_HRNet/dataset"
 TEST_PATH: "D:/project/DCT_RGB_HRNet/dataset"
-TYPE: ''
+TYPE: ""
 EPOCHES: 5
 BATCH_SIZE: 8
 
-MODEL: 
+# 新增数据增强配置
+DATA_AUGMENTATION:
+  ENABLED: true
+  COLOR_JITTER:
+    BRIGHTNESS: 0.4
+    CONTRAST: 0.4
+    SATURATION: 0.4
+    HUE: 0.1
+  RANDOM_GRAYSCALE: 0.2
+  RANDOM_HORIZONTAL_FLIP: 0.5
+  RANDOM_VERTICAL_FLIP: 0.3
+  RANDOM_ROTATION:
+    ENABLED: true
+    MAX_ANGLE: 10
+  RANDOM_CROP:
+    ENABLED: true
+    SCALE: [0.8, 1.0]
+    RATIO: [0.75, 1.33]
+  CUTOUT:
+    ENABLED: true
+    HOLES: 1
+    LENGTH: 32
+  NOISE:
+    ENABLED: true
+    GAUSSIAN_PROB: 0.2
+    GAUSSIAN_MEAN: 0
+    GAUSSIAN_STD: 0.05
+  BLUR:
+    ENABLED: true
+    GAUSSIAN_PROB: 0.2
+    KERNEL_SIZE: 5
+  JPEG_COMPRESSION:
+    ENABLED: true
+    PROB: 0.3
+    QUALITY_RANGE: [50, 95]
+
+# 新增优化器配置
+OPTIMIZER:
+  NAME: "adamw" # 'sgd', 'adam', 'adamw'
+  LR: 0.0002
+  WEIGHT_DECAY: 0.0001
+  MOMENTUM: 0.9 # 用于SGD
+  BETA1: 0.9 # 用于Adam/AdamW
+  BETA2: 0.999 # 用于Adam/AdamW
+
+# 新增学习率调度器
+LR_SCHEDULER:
+  NAME: "cosine" # 'step', 'multistep', 'cosine', 'plateau'
+  WARMUP:
+    ENABLED: true
+    EPOCHS: 5
+    MULTIPLIER: 1.0
+    METHOD: "linear" # 'linear', 'constant'
+  COSINE:
+    T_MAX: 100
+    ETA_MIN: 0.00001
+  STEP:
+    STEPS: [30, 60, 90]
+    GAMMA: 0.1
+  MULTISTEP:
+    MILESTONES: [30, 60, 80]
+    GAMMA: 0.1
+  PLATEAU:
+    PATIENCE: 5
+    FACTOR: 0.5
+    MIN_LR: 0.00001
+
+# 新增训练策略配置
+TRAINING:
+  MIXED_PRECISION: true # 启用混合精度训练
+  CLIP_GRAD_NORM: 1.0 # 梯度裁剪值
+  EMA:
+    ENABLED: true # 启用EMA模型
+    DECAY: 0.999 # EMA衰减率
+  VALIDATION:
+    FREQ: 100 # 每100步验证一次
+    METRIC: "accuracy" # 验证指标
+  EARLY_STOPPING:
+    ENABLED: true
+    PATIENCE: 10 # 早停耐心值
+    MIN_DELTA: 0.001 # 最小改进差值
+
+# 新增掩码监督配置
+MASK:
+  WEIGHT: 0.5 # 掩码损失权重
+  ENABLED: true # 是否启用掩码监督
+
+MODEL:
   NAME: cls_hrnet
-  IMAGE_SIZE: 
+  IMAGE_SIZE:
     - 256
     - 256
   EXTRA:
@@ -21,62 +108,62 @@ MODEL:
       NUM_RANCHES: 1
       BLOCK: BOTTLENECK
       NUM_BLOCKS:
-      - 4
+        - 4
       NUM_CHANNELS:
-      - 64
+        - 64
       FUSE_METHOD: SUM
     STAGE2:
       NUM_MODULES: 1
       NUM_BRANCHES: 2
       BLOCK: BASIC
       NUM_BLOCKS:
-      - 4
-      - 4
+        - 4
+        - 4
       NUM_CHANNELS:
-      - 32
-      - 64
+        - 32
+        - 64
       FUSE_METHOD: SUM
     STAGE3:
       NUM_MODULES: 4
       NUM_BRANCHES: 3
       BLOCK: BASIC
       NUM_BLOCKS:
-      - 4
-      - 4
-      - 4
+        - 4
+        - 4
+        - 4
       NUM_CHANNELS:
-      - 32
-      - 64
-      - 128
+        - 32
+        - 64
+        - 128
       FUSE_METHOD: SUM
     STAGE4:
       NUM_MODULES: 3
       NUM_BRANCHES: 4
       BLOCK: BASIC
       NUM_BLOCKS:
-      - 4
-      - 4
-      - 4
-      - 4
+        - 4
+        - 4
+        - 4
+        - 4
       NUM_CHANNELS:
-      - 32
-      - 64
-      - 128
-      - 256
+        - 32
+        - 64
+        - 128
+        - 256
       FUSE_METHOD: SUM
 CUDNN:
   BENCHMARK: true
   DETERMINISTIC: false
   ENABLED: true
 DATASET:
-  DATASET: 'imagenet'
-  DATA_FORMAT: 'jpg'
-  ROOT: 'data/imagenet/'
-  TEST_SET: 'test'
-  TRAIN_SET: 'train'
+  DATASET: "imagenet"
+  DATA_FORMAT: "jpg"
+  ROOT: "data/imagenet/"
+  TEST_SET: "test"
+  TRAIN_SET: "train"
 TEST:
   BATCH_SIZE_PER_GPU: 16
-  MODEL_FILE: ''
+  MODEL_FILE: ""
 TRAIN:
   BATCH_SIZE_PER_GPU: 16
   BEGIN_EPOCH: 0
@@ -84,9 +171,9 @@ TRAIN:
   RESUME: true
   LR_FACTOR: 0.1
   LR_STEP:
-  - 30
-  - 60
-  - 90
+    - 30
+    - 60
+    - 90
   OPTIMIZER: sgd
   LR: 0.05
   WD: 0.0001
