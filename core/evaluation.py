@@ -221,11 +221,49 @@ class ModelEvaluator:
     
     def calculate_metrics(self, labels, preds, probs):
         """计算各种分类评估指标"""
+        # 转换为numpy数组
         labels = np.array(labels)
         preds = np.array(preds)
         probs = np.array(probs)
         
-        # 基本指标
+        # 检查数据有效性
+        valid_mask = ~np.isnan(labels) & ~np.isnan(preds) & (labels != None) & (preds != None)
+        
+        # 如果存在无效值，打印警告并过滤
+        if not np.all(valid_mask):
+            print(f"警告: 发现 {np.sum(~valid_mask)} 个无效样本 (NaN或None)，将被过滤")
+            labels = labels[valid_mask]
+            preds = preds[valid_mask]
+            probs = probs[valid_mask]
+        
+        # 确保所有值都是有效的二进制值(0或1)
+        unique_labels = np.unique(labels)
+        unique_preds = np.unique(preds)
+        
+        # 如果存在非二进制值，进行强制转换
+        if not np.all(np.isin(unique_labels, [0, 1])) or not np.all(np.isin(unique_preds, [0, 1])):
+            print(f"警告: 标签中的唯一值: {unique_labels}, 预测中的唯一值: {unique_preds}")
+            print("尝试将所有值强制转换为二进制(0/1)")
+            
+            # 强制转换为二进制
+            labels = np.round(labels).clip(0, 1).astype(int)
+            preds = np.round(preds).clip(0, 1).astype(int)
+        
+        # 再次检查转换后的值
+        if len(np.unique(labels)) > 2 or len(np.unique(preds)) > 2:
+            print("错误: 无法将标签或预测转换为二进制值")
+            # 返回基本指标以避免完全失败
+            return {
+                'accuracy': 0.0,
+                'auc': 0.5,
+                'ap': 0.5,
+                'confusion_matrix': np.array([[0, 0], [0, 0]]),
+                'classification_report': {'precision': 0, 'recall': 0, 'f1-score': 0},
+                'roc_data': {'fpr': np.array([0, 1]), 'tpr': np.array([0, 1])},
+                'pr_data': {'precision': np.array([0, 1]), 'recall': np.array([0, 1])}
+            }
+        
+        # 计算基本指标
         accuracy = accuracy_score(labels, preds)
         
         # ROC曲线和AUC

@@ -96,7 +96,7 @@ class DCTTransform(nn.Module):
                     b_dct = self.apply_dct(x[:, 2:3, :, :])
                     return torch.cat([r_dct, g_dct, b_dct], dim=1)
             else:
-                print(f"警告: 输入通道数 {channels} 不是3，直接应用DCT")
+                #print(f"警告: 输入通道数 {channels} 不是3，直接应用DCT")
                 # 如果不是3通道，对每个通道分别应用DCT
                 dct_features = []
                 channels_per_output = self.out_channels // max(1, min(3, channels))
@@ -135,7 +135,7 @@ class DCTTransform(nn.Module):
                 return combined_dct
 
         except Exception as e:
-            print(f"dct_transform.py中DCTTransform.forward函数DCT特征提取失败: {e}")
+            #print(f"dct_transform.py中DCTTransform.forward函数DCT特征提取失败: {e}")
             import traceback
             traceback.print_exc()
             # 返回零填充的DCT特征
@@ -224,7 +224,7 @@ class MultiScaleFrequencyExtractor(nn.Module):
 
             # 验证输出形状
             if ycbcr.shape != rgb_image.shape:
-                print(f"警告: YCbCr形状{ycbcr.shape}与输入RGB形状{rgb_image.shape}不匹配")
+                #print(f"警告: YCbCr形状{ycbcr.shape}与输入RGB形状{rgb_image.shape}不匹配")
                 return None
 
             # 正常转换，输出调试信息
@@ -232,9 +232,9 @@ class MultiScaleFrequencyExtractor(nn.Module):
             return ycbcr
 
         except RuntimeError as e:
-            print(f"RGB到YCbCr转换出错: {e}")
+            #print(f"RGB到YCbCr转换出错: {e}")
             # 发生错误时返回原图，而不是None
-            print("返回原始RGB图像作为备用")
+            #print("返回原始RGB图像作为备用")
             return rgb_image
     
     def extract_dct_features(self, img):
@@ -323,7 +323,7 @@ class MultiScaleFrequencyExtractor(nn.Module):
                 return torch.zeros(batch_size, self.out_channels, height, width, device=img.device)
 
         except Exception as e:
-            print(f"dct_transform.py中MultiScaleFrequencyExtractor.extract_dct_features函数DCT特征提取失败: {e}")
+            #print(f"dct_transform.py中MultiScaleFrequencyExtractor.extract_dct_features函数DCT特征提取失败: {e}")
             import traceback
             traceback.print_exc()
 

@@ -38,7 +38,7 @@ class CoordinateAttention(nn.Module):
 
         # 添加通道检查和适配
         if hasattr(self, 'in_channels') and x.size(1) != self.in_channels:
-            print(f"CoordinateAttention: 输入通道数 {x.size(1)} 与预期 {self.in_channels} 不匹配，进行适配")
+            ##print(f"CoordinateAttention: 输入通道数 {x.size(1)} 与预期 {self.in_channels} 不匹配，进行适配")
             # 创建临时通道适配层
             adapter = nn.Conv2d(
                 x.size(1), 
@@ -52,7 +52,7 @@ class CoordinateAttention(nn.Module):
 
             # 应用适配
             x = adapter(x)
-            print(f"通道适配后形状: {x.shape}")
+            ##print(f"通道适配后形状: {x.shape}")
             identity = x  # 更新identity使用适配后的x
 
         # 池化操作
@@ -75,7 +75,7 @@ class CoordinateAttention(nn.Module):
             # 应用注意力
             out = identity * x_attention
         except Exception as e:
-            print(f"CoordinateAttention 处理出错: {e}")
+            ##print(f"CoordinateAttention 处理出错: {e}")
             out = identity  # 出错时直接返回原始特征
 
         return out
@@ -131,7 +131,7 @@ class FrequencyAwareAttention(nn.Module):
 
         # 添加通道检查和适配
         if x.size(1) != self.in_channels:
-            print(f"FrequencyAwareAttention: 输入通道 {x.size(1)} 与预期 {self.in_channels} 不匹配，进行适配")
+            ##print(f"FrequencyAwareAttention: 输入通道 {x.size(1)} 与预期 {self.in_channels} 不匹配，进行适配")
             # 创建临时通道适配
             adapter = nn.Conv2d(
                 x.size(1), 
@@ -145,7 +145,7 @@ class FrequencyAwareAttention(nn.Module):
 
             # 应用适配
             x = adapter(x)
-            print(f"通道适配后形状: {x.shape}")
+            ##print(f"通道适配后形状: {x.shape}")
             identity = x  # 更新identity使用适配后的x
 
         try:
@@ -158,7 +158,7 @@ class FrequencyAwareAttention(nn.Module):
             # 应用频率注意力
             out = identity * freq_attention
         except Exception as e:
-            print(f"FrequencyAwareAttention 处理出错: {e}")
+            ##print(f"FrequencyAwareAttention 处理出错: {e}")
             out = identity  # 出错时直接返回原始特征
 
         return out
@@ -223,11 +223,11 @@ class SelfMutualAttention(nn.Module):
             x2 = x1  # 自注意力模式
             
         b, c, h, w = x1.size()
-        print(f"SelfMutualAttention 输入形状 - x1: {x1.shape}, x2: {x2.shape}")
+        ##print(f"SelfMutualAttention 输入形状 - x1: {x1.shape}, x2: {x2.shape}")
         
         # 检查输入尺寸不匹配
         if x1.shape[-2:] != x2.shape[-2:]:
-            print(f"警告：互注意力输入尺寸不匹配 - x1: {x1.shape[-2:]}, x2: {x2.shape[-2:]}")
+            ##print(f"警告：互注意力输入尺寸不匹配 - x1: {x1.shape[-2:]}, x2: {x2.shape[-2:]}")
             # 调整x2以匹配x1
             x2 = F.interpolate(
                 x2,
@@ -235,7 +235,7 @@ class SelfMutualAttention(nn.Module):
                 mode='bilinear',
                 align_corners=False
             )
-            print(f"调整后x2形状: {x2.shape}")
+            ##print(f"调整后x2形状: {x2.shape}")
         
         # 生成查询、键、值
         q = self.q_proj(x1)
@@ -253,7 +253,7 @@ class SelfMutualAttention(nn.Module):
         v = rearrange(v, 'b n (h d) -> b h n d', h=self.num_heads)
         
         # 打印特征形状
-        print(f"多头注意力形状 - q: {q.shape}, k: {k.shape}, v: {v.shape}")
+        ##print(f"多头注意力形状 - q: {q.shape}, k: {k.shape}, v: {v.shape}")
         
         # 计算注意力分数
         attn = torch.matmul(q, k.transpose(-2, -1)) * self.scale
@@ -269,7 +269,7 @@ class SelfMutualAttention(nn.Module):
                 h = w = int(seq_len ** 0.5)
                 
                 if h <= self.max_position_embeddings and w <= self.max_position_embeddings:
-                    print(f"使用动态位置编码 (h={h}, w={w}, heads={h_heads})")
+                    #print(f"使用动态位置编码 (h={h}, w={w}, heads={h_heads})")
                     
                     # 水平方向相对位置
                     rel_pos_h = self.get_rel_pos_matrix(h, self.max_position_embeddings)
@@ -282,7 +282,7 @@ class SelfMutualAttention(nn.Module):
                     
                     # 检查并适配头数，确保与输入匹配
                     if h_heads != self.num_heads:
-                        print(f"注意: 输入头数 {h_heads} 与预期头数 {self.num_heads} 不匹配")
+                        #print(f"注意: 输入头数 {h_heads} 与预期头数 {self.num_heads} 不匹配")
                         # 如果头数不匹配，选择合适的头数维度
                         # 如果实际头数小于配置的头数，我们只使用部分位置编码
                         # 如果实际头数大于配置的头数，我们需要扩展位置编码（通过复制或插值）
@@ -315,14 +315,14 @@ class SelfMutualAttention(nn.Module):
                     rel_pos_w = rel_pos_w.permute(2, 0, 1).unsqueeze(0)  # [1, heads, w, w]
                     
                     # 添加形状检查，确保尺寸正确
-                    print(f"位置编码形状 - 水平: {rel_pos_h.shape}, 垂直: {rel_pos_w.shape}")
+                    #print(f"位置编码形状 - 水平: {rel_pos_h.shape}, 垂直: {rel_pos_w.shape}")
                     
                     # 行方向注意力
                     q_with_h_bias = q.reshape(b, h_heads, h, w, d_head)
                     
                     # 添加安全检查，确保可以进行矩阵乘法
                     if rel_pos_h.shape[1] != h_heads:
-                        print(f"警告: 位置编码头数 {rel_pos_h.shape[1]} 与查询头数 {h_heads} 不匹配，调整位置编码")
+                        #print(f"警告: 位置编码头数 {rel_pos_h.shape[1]} 与查询头数 {h_heads} 不匹配，调整位置编码")
                         # 调整位置编码头数
                         rel_pos_h = rel_pos_h.expand(1, h_heads, h, h)
                     
@@ -331,8 +331,8 @@ class SelfMutualAttention(nn.Module):
                         rel_h_attn = torch.matmul(q_with_h_bias.transpose(2, 3), 
                                                  rel_pos_h.transpose(-2, -1)).transpose(2, 3)
                     except RuntimeError as e:
-                        print(f"行方向注意力计算失败: {e}")
-                        print(f"q_with_h_bias: {q_with_h_bias.shape}, rel_pos_h: {rel_pos_h.shape}")
+                        #print(f"行方向注意力计算失败: {e}")
+                        #print(f"q_with_h_bias: {q_with_h_bias.shape}, rel_pos_h: {rel_pos_h.shape}")
                         # 跳过位置编码
                         rel_h_attn = torch.zeros_like(q_with_h_bias)
                     
@@ -341,7 +341,7 @@ class SelfMutualAttention(nn.Module):
                     
                     # 同样检查位置编码维度
                     if rel_pos_w.shape[1] != h_heads:
-                        print(f"警告: 位置编码头数 {rel_pos_w.shape[1]} 与查询头数 {h_heads} 不匹配，调整位置编码")
+                        #print(f"警告: 位置编码头数 {rel_pos_w.shape[1]} 与查询头数 {h_heads} 不匹配，调整位置编码")
                         # 调整位置编码头数
                         rel_pos_w = rel_pos_w.expand(1, h_heads, w, w)
                     
@@ -349,8 +349,8 @@ class SelfMutualAttention(nn.Module):
                         rel_w_attn = torch.matmul(q_with_w_bias, 
                                                  rel_pos_w.transpose(-2, -1))
                     except RuntimeError as e:
-                        print(f"列方向注意力计算失败: {e}")
-                        print(f"q_with_w_bias: {q_with_w_bias.shape}, rel_pos_w: {rel_pos_w.shape}")
+                        #print(f"列方向注意力计算失败: {e}")
+                        #print(f"q_with_w_bias: {q_with_w_bias.shape}, rel_pos_w: {rel_pos_w.shape}")
                         # 跳过位置编码
                         rel_w_attn = torch.zeros_like(q_with_w_bias)
                     
@@ -362,9 +362,9 @@ class SelfMutualAttention(nn.Module):
                         
                         # 应用位置注意力
                         attn = attn + (rel_h_attn + rel_w_attn).reshape(b, h_heads, seq_len, seq_len)
-                        print("成功应用动态位置编码")
+                        #print("成功应用动态位置编码")
                     except RuntimeError as e:
-                        print(f"重塑位置编码注意力失败: {e}")
+                        #print(f"重塑位置编码注意力失败: {e}")
                         # 出错时不应用位置编码
                         pass
                 else:
@@ -497,15 +497,15 @@ class ForensicAttentionFusion(nn.Module):
         batch_size = rgb_features.size(0)
 
         # 添加详细的输入形状和通道信息
-        print(f"ForensicAttentionFusion 输入形状 - RGB: {rgb_features.shape}, 频域: {freq_features.shape}")
+        #print(f"ForensicAttentionFusion 输入形状 - RGB: {rgb_features.shape}, 频域: {freq_features.shape}")
 
         # 检查是否有in_channels属性
         if hasattr(self, 'in_channels'):
-            print(f"ForensicAttentionFusion 预期通道数: {self.in_channels}")
+            #print(f"ForensicAttentionFusion 预期通道数: {self.in_channels}")
 
             # RGB特征通道检查
             if rgb_features.size(1) != self.in_channels:
-                print(f"RGB特征通道不匹配: 需要{self.in_channels}，实际{rgb_features.size(1)}，进行适配")
+                #print(f"RGB特征通道不匹配: 需要{self.in_channels}，实际{rgb_features.size(1)}，进行适配")
                 # 创建通道适配层
                 rgb_adapter = nn.Conv2d(
                     rgb_features.size(1),
@@ -519,11 +519,11 @@ class ForensicAttentionFusion(nn.Module):
 
                 # 应用适配
                 rgb_features = rgb_adapter(rgb_features)
-                print(f"RGB特征通道适配后: {rgb_features.shape}")
+                #print(f"RGB特征通道适配后: {rgb_features.shape}")
 
             # 频域特征通道检查
             if freq_features.size(1) != self.in_channels:
-                print(f"频域特征通道不匹配: 需要{self.in_channels}，实际{freq_features.size(1)}，进行适配")
+                #print(f"频域特征通道不匹配: 需要{self.in_channels}，实际{freq_features.size(1)}，进行适配")
                 # 创建通道适配层
                 freq_adapter = nn.Conv2d(
                     freq_features.size(1),
@@ -537,7 +537,7 @@ class ForensicAttentionFusion(nn.Module):
 
                 # 应用适配
                 freq_features = freq_adapter(freq_features)
-                print(f"频域特征通道适配后: {freq_features.shape}")
+                #print(f"频域特征通道适配后: {freq_features.shape}")
         else:
             print("警告: ForensicAttentionFusion 没有 in_channels 属性")
 
@@ -545,29 +545,29 @@ class ForensicAttentionFusion(nn.Module):
             # 分别增强RGB和频域特征
             rgb_enhanced = self.coord_attn_rgb(rgb_features)
             freq_enhanced = self.freq_attn(freq_features)
-            print(f"增强后特征形状 - RGB: {rgb_enhanced.shape}, 频域: {freq_enhanced.shape}")
+            #print(f"增强后特征形状 - RGB: {rgb_enhanced.shape}, 频域: {freq_enhanced.shape}")
 
             # 特征交互 - 让RGB和频域特征相互学习
             rgb_mutual = self.mutual_attn(rgb_enhanced, freq_enhanced)
             freq_mutual = self.mutual_attn(freq_enhanced, rgb_enhanced)
-            print(f"相互注意力后形状 - RGB: {rgb_mutual.shape}, 频域: {freq_mutual.shape}")
+            #print(f"相互注意力后形状 - RGB: {rgb_mutual.shape}, 频域: {freq_mutual.shape}")
 
             # 边界增强
             rgb_boundary = self.boundary_attn(rgb_mutual)
             freq_boundary = self.boundary_attn(freq_mutual)
-            print(f"边界增强后形状 - RGB: {rgb_boundary.shape}, 频域: {freq_boundary.shape}")
+            #print(f"边界增强后形状 - RGB: {rgb_boundary.shape}, 频域: {freq_boundary.shape}")
 
             # 中间融合 - 将原始特征与增强特征融合
             rgb_fused = self.fusion_rgb(torch.cat([rgb_features, rgb_boundary], dim=1))
             freq_fused = self.fusion_freq(torch.cat([freq_features, freq_boundary], dim=1))
-            print(f"特征融合后形状 - RGB: {rgb_fused.shape}, 频域: {freq_fused.shape}")
+            #print(f"特征融合后形状 - RGB: {rgb_fused.shape}, 频域: {freq_fused.shape}")
 
             # 自适应权重归一化
             fusion_weights = F.softmax(self.fusion_weights, dim=0)
 
             # 加权融合两个分支
             fused_features = fusion_weights[0] * rgb_fused + fusion_weights[1] * freq_fused
-            print(f"加权融合后特征形状: {fused_features.shape}")
+            #print(f"加权融合后特征形状: {fused_features.shape}")
 
             # 自残差连接
             rgb_residual = rgb_features + fused_features
@@ -575,11 +575,11 @@ class ForensicAttentionFusion(nn.Module):
 
             # 最终融合 - 更好地保留各自分支的独特特征
             final_fusion = self.final_fusion(torch.cat([rgb_residual, freq_residual], dim=1))
-            print(f"最终融合特征形状: {final_fusion.shape}")
+            #print(f"最终融合特征形状: {final_fusion.shape}")
 
             return rgb_residual, freq_residual, final_fusion
         except Exception as e:
-            print(f"ForensicAttentionFusion处理出错: {e}")
+            #print(f"ForensicAttentionFusion处理出错: {e}")
             # 发生错误时返回原始特征
             return rgb_features, freq_features, rgb_features
 
@@ -589,27 +589,27 @@ if __name__ == '__main__':
     x = torch.randn(2, 64, 32, 32)
     coord_attn = CoordinateAttention(64)
     out = coord_attn(x)
-    print(f"CoordinateAttention output shape: {out.shape}")
+    #print(f"CoordinateAttention output shape: {out.shape}")
     
     # 测试频率感知注意力
     freq_attn = FrequencyAwareAttention(64)
     out = freq_attn(x)
-    print(f"FrequencyAwareAttention output shape: {out.shape}")
+    #print(f"FrequencyAwareAttention output shape: {out.shape}")
     
     # 测试自相互注意力
     self_mutual_attn = SelfMutualAttention(64, num_heads=8)
     out1 = self_mutual_attn(x)  # 自注意力模式
     out2 = self_mutual_attn(x, torch.randn(2, 64, 32, 32))  # 互注意力模式
-    print(f"SelfMutualAttention output shape: {out1.shape}, {out2.shape}")
+    #print(f"SelfMutualAttention output shape: {out1.shape}, {out2.shape}")
     
     # 测试边界增强注意力
     boundary_attn = BoundaryEnhancedAttention(64)
     out = boundary_attn(x)
-    print(f"BoundaryEnhancedAttention output shape: {out.shape}")
+    #print(f"BoundaryEnhancedAttention output shape: {out.shape}")
     
     # 测试完整的融合模块
     rgb_features = torch.randn(2, 64, 32, 32)
     freq_features = torch.randn(2, 64, 32, 32)
     fusion = ForensicAttentionFusion(64)
     rgb_out, freq_out, fusion_out = fusion(rgb_features, freq_features)
-    print(f"ForensicAttentionFusion output shapes: RGB={rgb_out.shape}, Freq={freq_out.shape}, Fusion={fusion_out.shape}")
+    #print(f"ForensicAttentionFusion output shapes: RGB={rgb_out.shape}, Freq={freq_out.shape}, Fusion={fusion_out.shape}")

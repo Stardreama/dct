@@ -23,14 +23,14 @@ from utils import save_checkpoint, load_model_weights, create_default_config, ev
 def ensure_same_device(tensor_a, tensor_b):
     """确保两个张量在同一设备上"""
     if tensor_a.device != tensor_b.device:
-        print(f"张量设备不匹配: {tensor_a.device} vs {tensor_b.device}，执行迁移")
+        #print(f"张量设备不匹配: {tensor_a.device} vs {tensor_b.device}，执行迁移")
         return tensor_b.to(tensor_a.device)
     return tensor_b
 
 def ensure_tensor_on_device(tensor, device):
     """确保张量位于指定设备上"""
     if tensor.device != device:
-        print(f"将张量从 {tensor.device} 移至 {device}")
+        #print(f"将张量从 {tensor.device} 移至 {device}")
         return tensor.to(device)
     return tensor
 
@@ -243,7 +243,7 @@ class ModelEMA:
                 self.ema_model = self.ema_model.to(device)
                 
         except Exception as e:
-            print(f"无法深度复制模型，尝试其他方法: {e}")
+            #print(f"无法深度复制模型，尝试其他方法: {e}")
             
             # 如果深度复制失败，尝试使用相同参数创建模型
             try:
@@ -258,12 +258,12 @@ class ModelEMA:
                     if device:
                         self.ema_model = self.ema_model.to(device)
                 else:
-                    print("模型没有config属性，无法创建EMA模型")
+                    #print("模型没有config属性，无法创建EMA模型")
                     # 临时解决方案：禁用EMA
                     self.ema_model = None
                     
             except Exception as e:
-                print(f"创建EMA模型失败，禁用EMA: {e}")
+                #print(f"创建EMA模型失败，禁用EMA: {e}")
                 self.ema_model = None
                 
         # 如果EMA模型成功创建，设置为评估模式并禁用梯度
@@ -334,7 +334,7 @@ class EnhancedTrainer:
         self.model = self.model.to(self.device)
 
         # 打印检查设备是否正确
-        print(f"模型设备检查: {next(self.model.parameters()).device}")
+        #print(f"模型设备检查: {next(self.model.parameters()).device}")
         
         # 如果有多GPU，使用DataParallel
         if len(gpu_ids) > 1:
@@ -453,27 +453,27 @@ class EnhancedTrainer:
         # 修改为:
         if hasattr(self.config, 'MULTI_TASK') and hasattr(self.config.MULTI_TASK, 'MASK') and self.config.MULTI_TASK.MASK.get('ENABLED', False):
             mask_loss_type = self.config.MULTI_TASK.MASK.get('LOSS_TYPE', 'dice_bce').lower()
-            print(f"使用掩码损失类型: {mask_loss_type}")
+            #print(f"使用掩码损失类型: {mask_loss_type}")
 
             if mask_loss_type == 'bce':
                 # 使用BCEWithLogitsLoss代替BCELoss，以支持混合精度
                 self.mask_criterion = nn.BCEWithLogitsLoss()
-                print("使用BCEWithLogitsLoss作为掩码损失")
+                #print("使用BCEWithLogitsLoss作为掩码损失")
             elif mask_loss_type == 'dice':
                 from core.losses import DiceLoss
                 self.mask_criterion = DiceLoss()
-                print("使用DiceLoss作为掩码损失")
+                #print("使用DiceLoss作为掩码损失")
             elif mask_loss_type == 'dice_bce':
                 from core.losses import DiceBCELoss
                 self.mask_criterion = DiceBCELoss()
-                print("使用DiceBCELoss作为掩码损失")
+                #print("使用DiceBCELoss作为掩码损失")
             else:
                 # 默认安全的选择
                 self.mask_criterion = nn.BCEWithLogitsLoss()
-                print(f"未知的掩码损失类型 '{mask_loss_type}'，使用默认的BCEWithLogitsLoss")
+                #print(f"未知的掩码损失类型 '{mask_loss_type}'，使用默认的BCEWithLogitsLoss")
         else:
             self.mask_criterion = None
-            print("掩码损失被禁用")
+            #print("掩码损失被禁用")
     
     def setup_optimizer(self):
         """设置优化器，支持分层学习率"""
@@ -647,7 +647,7 @@ class EnhancedTrainer:
         if hasattr(self.config, 'TRAINING') and hasattr(self.config.TRAINING, 'MIXED_PRECISION'):
             self.use_amp = self.config.TRAINING.MIXED_PRECISION
             if self.use_amp:
-                self.scaler = GradScaler('cuda')
+                self.scaler = torch.amp.GradScaler('cuda')
     
     def setup_ema(self):
         """设置EMA模型"""
@@ -789,14 +789,14 @@ class EnhancedTrainer:
                             try:
                                 mask_loss = self.mask_loss_fn(mask_outputs_sigmoid, masks_device)
                             except Exception as e:
-                                print(f"计算掩码损失(sigmoid后)错误: {e}")
+                                #print(f"计算掩码损失(sigmoid后)错误: {e}")
                                 mask_loss = torch.tensor(0.0, device=self.device)
                         else:
                             # 适合混合精度的损失函数(如BCEWithLogitsLoss)
                             try:
                                 mask_loss = self.mask_loss_fn(mask_outputs, masks_device)
                             except Exception as e:
-                                print(f"计算掩码损失错误: {e}")
+                                #print(f"计算掩码损失错误: {e}")
                                 mask_loss = torch.tensor(0.0, device=self.device)
 
                         # 添加掩码损失到总损失
@@ -815,7 +815,7 @@ class EnhancedTrainer:
                 # 检查输入和模型设备是否匹配
                 model_device = next(self.model.parameters()).device
                 if inputs.device != model_device:
-                    print(f"警告: 输入设备 {inputs.device} 与模型设备 {model_device} 不匹配，尝试修复")
+                    #print(f"警告: 输入设备 {inputs.device} 与模型设备 {model_device} 不匹配，尝试修复")
                     inputs = inputs.to(model_device)
                     if dct_features is not None:
                         dct_features = dct_features.to(model_device)
@@ -1474,7 +1474,7 @@ class EnhancedTrainer:
     def ensure_model_on_device(self):
         """确保模型的所有部分都在同一设备上"""
         device = self.device
-        print(f"强制将模型所有部分移至 {device}")
+        #print(f"强制将模型所有部分移至 {device}")
 
         # 更新损失函数的设备
         if hasattr(self, 'cls_weights_data'):
@@ -1484,7 +1484,7 @@ class EnhancedTrainer:
         for name, module in self.model.named_modules():
             for param_name, param in module.named_parameters(recurse=False):
                 if param.device != device:
-                    print(f"警告: 参数 {name}.{param_name} 在 {param.device}，正在移至 {device}")
+                    #print(f"警告: 参数 {name}.{param_name} 在 {param.device}，正在移至 {device}")
                     param.data = param.data.to(device)
 
         return self.model    

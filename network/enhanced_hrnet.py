@@ -128,7 +128,7 @@ class EnhancedHRNet(nn.Module):
     def forward(self, rgb_input, dct_input=None):
         """前向传播，支持单RGB输入或RGB+DCT双输入"""
         # 添加更多调试信息
-        print(f"输入形状 - RGB: {rgb_input.shape}, DCT: {dct_input.shape if dct_input is not None else None}")
+        #print(f"输入形状 - RGB: {rgb_input.shape}, DCT: {dct_input.shape if dct_input is not None else None}")
         
         # 如果没有DCT输入，尝试从RGB计算简化版DCT特征
         # 添加容错代码
@@ -161,40 +161,40 @@ class EnhancedHRNet(nn.Module):
 
         # RGB分支前向传播
         rgb_features, rgb_seg = self.rgb_branch(rgb_input)
-        print(f"RGB分支输出形状: 特征={rgb_features.shape}, 分割={rgb_seg.shape if rgb_seg is not None else None}")
+        #print(f"RGB分支输出形状: 特征={rgb_features.shape}, 分割={rgb_seg.shape if rgb_seg is not None else None}")
         
         # DCT分支前向传播
         dct_features, dct_seg = self.dct_branch(dct_input)
-        print(f"DCT分支输出形状: 特征={dct_features.shape}, 分割={dct_seg.shape if dct_seg is not None else None}")
+        #print(f"DCT分支输出形状: 特征={dct_features.shape}, 分割={dct_seg.shape if dct_seg is not None else None}")
         
         # 获取各阶段特征 (假设HRNet的forward方法已修改为返回中间特征)
         rgb_stage_features = self._get_stage_features(self.rgb_branch, rgb_input)
         dct_stage_features = self._get_stage_features(self.dct_branch, dct_input)
         
         # 打印各阶段特征形状
-        print("RGB各阶段特征形状:")
-        for i, feat in enumerate(rgb_stage_features):
-            print(f"  第{i+1}阶段: {feat.shape}")
+        #print("RGB各阶段特征形状:")
+        # for i, feat in enumerate(rgb_stage_features):
+        #     print(f"  第{i+1}阶段: {feat.shape}")
         
-        print("DCT各阶段特征形状:")
-        for i, feat in enumerate(dct_stage_features):
-            print(f"  第{i+1}阶段: {feat.shape}")
+        # print("DCT各阶段特征形状:")
+        # for i, feat in enumerate(dct_stage_features):
+        #     print(f"  第{i+1}阶段: {feat.shape}")
         
         # 特征融合 - 每个分辨率级别应用特定融合
         fused_features = []
         for i, (rgb_feat, dct_feat) in enumerate(zip(rgb_stage_features, dct_stage_features)):
-            print(f"处理第{i+1}阶段融合 - RGB: {rgb_feat.shape}, DCT: {dct_feat.shape}")
+            #print(f"处理第{i+1}阶段融合 - RGB: {rgb_feat.shape}, DCT: {dct_feat.shape}")
             
             # 确保RGB和DCT特征尺寸匹配
             if rgb_feat.shape[-2:] != dct_feat.shape[-2:]:
-                print(f"  第{i+1}阶段尺寸不匹配，调整DCT特征")
+                #print(f"  第{i+1}阶段尺寸不匹配，调整DCT特征")
                 dct_feat = F.interpolate(
                     dct_feat,
                     size=rgb_feat.shape[-2:],
                     mode='bilinear',
                     align_corners=False
                 )
-                print(f"  调整后 DCT 形状: {dct_feat.shape}")
+                #print(f"  调整后 DCT 形状: {dct_feat.shape}")
             
             # 应用注意力增强
             rgb_feat = self.coord_attentions[i](rgb_feat)
@@ -202,12 +202,12 @@ class EnhancedHRNet(nn.Module):
             
             # 特征融合
             rgb_enhanced, dct_enhanced, fused = self.fusion_modules[i](rgb_feat, dct_feat)
-            print(f"  融合后特征形状: {fused.shape}")
+            #print(f"  融合后特征形状: {fused.shape}")
             
             # 调整融合特征到统一尺寸 (使用第一个特征的尺寸作为参考)
             target_size = rgb_stage_features[0].shape[-2:] if i > 0 else fused.shape[-2:]
             if fused.shape[-2:] != target_size:
-                print(f"  调整融合特征从 {fused.shape[-2:]} 到 {target_size}")
+                #print(f"  调整融合特征从 {fused.shape[-2:]} 到 {target_size}")
                 fused = F.interpolate(
                     fused,
                     size=target_size,
@@ -218,12 +218,12 @@ class EnhancedHRNet(nn.Module):
             fused_features.append(fused)
         
         # 确保所有特征具有相同的空间尺寸
-        print("检查融合特征的空间尺寸一致性:")
+        #print("检查融合特征的空间尺寸一致性:")
         reference_shape = fused_features[0].shape[-2:]
         for i, feat in enumerate(fused_features):
-            print(f"  特征 {i+1} 形状: {feat.shape}")
+            #print(f"  特征 {i+1} 形状: {feat.shape}")
             if feat.shape[-2:] != reference_shape:
-                print(f"  调整特征 {i+1} 从 {feat.shape[-2:]} 到 {reference_shape}")
+                #print(f"  调整特征 {i+1} 从 {feat.shape[-2:]} 到 {reference_shape}")
                 fused_features[i] = F.interpolate(
                     feat,
                     size=reference_shape,
@@ -234,25 +234,25 @@ class EnhancedHRNet(nn.Module):
         # 联合多尺度特征
         try:
             combined_feature = torch.cat(fused_features, dim=1)
-            print(f"合并特征形状: {combined_feature.shape}")
+            #print(f"合并特征形状: {combined_feature.shape}")
         except RuntimeError as e:
-            print("合并特征时出错，再次检查各特征形状:")
-            for i, feat in enumerate(fused_features):
-                print(f"  特征 {i+1}: {feat.shape}")
+            #print("合并特征时出错，再次检查各特征形状:")
+            #for i, feat in enumerate(fused_features):
+                #print(f"  特征 {i+1}: {feat.shape}")
             raise e
         
         # 在调用 self.final_fusion 之前添加这段代码
-        print(f"最终融合前通道数 - RGB: {rgb_features.size(1)}, DCT: {dct_features.size(1)}")
-        print(f"最终融合层预期通道数: {getattr(self.final_fusion, 'in_channels', '未知')}")
+        #print(f"最终融合前通道数 - RGB: {rgb_features.size(1)}, DCT: {dct_features.size(1)}")
+        #print(f"最终融合层预期通道数: {getattr(self.final_fusion, 'in_channels', '未知')}")
 
         # 获取预期通道数，添加安全检查
         if hasattr(self.final_fusion, 'in_channels'):
-            print(f"最终融合层预期通道数: {self.final_fusion.in_channels}")
+            #print(f"最终融合层预期通道数: {self.final_fusion.in_channels}")
             expected_channels = self.final_fusion.in_channels
 
             # RGB特征通道检查
             if rgb_features.size(1) != expected_channels:
-                print(f"最终融合: RGB特征通道不匹配，适配从 {rgb_features.size(1)} 到 {expected_channels}")
+                #print(f"最终融合: RGB特征通道不匹配，适配从 {rgb_features.size(1)} 到 {expected_channels}")
                 # 创建通道适配层
                 rgb_adapter = nn.Conv2d(
                     rgb_features.size(1),
@@ -266,14 +266,14 @@ class EnhancedHRNet(nn.Module):
 
                 # 应用适配
                 rgb_features = rgb_adapter(rgb_features)
-                print(f"RGB特征通道适配后: {rgb_features.shape}")
+                #print(f"RGB特征通道适配后: {rgb_features.shape}")
         else:
             print("警告: final_fusion 模块没有 in_channels 属性")
 
         # DCT特征通道检查
         if hasattr(self.final_fusion, 'in_channels') and dct_features.size(1) != self.final_fusion.in_channels:
             expected_channels = self.final_fusion.in_channels
-            print(f"最终融合: DCT特征通道不匹配，适配从 {dct_features.size(1)} 到 {expected_channels}")
+            #print(f"最终融合: DCT特征通道不匹配，适配从 {dct_features.size(1)} 到 {expected_channels}")
             # 创建通道适配层
             dct_adapter = nn.Conv2d(
                 dct_features.size(1),
@@ -287,38 +287,38 @@ class EnhancedHRNet(nn.Module):
             
             # 应用适配
             dct_features = dct_adapter(dct_features)
-            print(f"DCT特征通道适配后: {dct_features.shape}")
+            #print(f"DCT特征通道适配后: {dct_features.shape}")
 
         # 最终特征融合
         # 使用适配层调整通道数
         rgb_features = self.rgb_output_adapter(rgb_features)
         dct_features = self.dct_output_adapter(dct_features)
-        print(f"通道适配后 - RGB: {rgb_features.shape}, DCT: {dct_features.shape}")
+        #print(f"通道适配后 - RGB: {rgb_features.shape}, DCT: {dct_features.shape}")
 
         # 最终特征融合
         _, _, final_feature = self.final_fusion(rgb_features, dct_features)
-        print(f"最终融合特征形状: {final_feature.shape}")
+        #print(f"最终融合特征形状: {final_feature.shape}")
 
         # 分类分支
         try:
             # 检查avg_pool是否已定义
             if not hasattr(self, 'avg_pool'):
-                print("添加全局平均池化层")
+                #print("添加全局平均池化层")
                 self.avg_pool = nn.AdaptiveAvgPool2d(1)
             
             pooled = self.avg_pool(final_feature).view(final_feature.size(0), -1)
             cls_output = self.classifier(pooled)
-            print(f"分类输出形状: {cls_output.shape}")
+            #print(f"分类输出形状: {cls_output.shape}")
         except Exception as e:
-            print(f"分类分支处理出错: {e}, 使用替代输出")
+            #print(f"分类分支处理出错: {e}, 使用替代输出")
             # 创建一个合理的替代输出
             cls_output = torch.zeros(final_feature.size(0), 2).to(final_feature.device)
         
 
         # 分割分支 - 添加通道适配
-        print(f"掩码头输入: 形状={final_feature.shape}, 预期通道数={self.mask_head_input_channels if hasattr(self, 'mask_head_input_channels') else '未知'}")
+        #print(f"掩码头输入: 形状={final_feature.shape}, 预期通道数={self.mask_head_input_channels if hasattr(self, 'mask_head_input_channels') else '未知'}")
         if final_feature.size(1) != getattr(self, 'mask_head_input_channels', 480):
-            print(f"掩码头输入通道不匹配: 需要{getattr(self, 'mask_head_input_channels', 480)}，实际{final_feature.size(1)}，进行适配")
+            #print(f"掩码头输入通道不匹配: 需要{getattr(self, 'mask_head_input_channels', 480)}，实际{final_feature.size(1)}，进行适配")
             # 创建通道适配层
             mask_adapter = nn.Conv2d(
                 final_feature.size(1),
@@ -332,13 +332,13 @@ class EnhancedHRNet(nn.Module):
 
             # 应用适配
             final_feature_for_mask = mask_adapter(final_feature)
-            print(f"掩码输入通道适配后: {final_feature_for_mask.shape}")
+            #print(f"掩码输入通道适配后: {final_feature_for_mask.shape}")
         else:
             final_feature_for_mask = final_feature
 
         # 应用掩码头
         mask_output = self.mask_head(final_feature_for_mask)
-        print(f"掩码输出形状: {mask_output.shape}")
+        #print(f"掩码输出形状: {mask_output.shape}")
         
         return cls_output, mask_output
     
@@ -352,12 +352,12 @@ class EnhancedHRNet(nn.Module):
             try:
                 # 获取特征
                 features = hrnet.get_stage_features(x)
-                print(f"成功获取HRNet阶段特征: {len(features)}个特征")
+                #print(f"成功获取HRNet阶段特征: {len(features)}个特征")
 
                 # 验证特征形状
                 for i, feat in enumerate(features):
                     if feat is None or feat.dim() != 4:
-                        print(f"警告: 第{i+1}阶段特征为None或形状不正确")
+                        #print(f"警告: 第{i+1}阶段特征为None或形状不正确")
                         # 替换为模拟特征
                         features[i] = torch.zeros(
                             (batch_size, 32 * (2 ** i), x.shape[2] // (2 ** (i + 2)), x.shape[3] // (2 ** (i + 2))), 
@@ -366,7 +366,7 @@ class EnhancedHRNet(nn.Module):
                         
                 return features
             except Exception as e:
-                print(f"获取HRNet阶段特征失败: {e}")
+                #print(f"获取HRNet阶段特征失败: {e}")
                 import traceback
                 traceback.print_exc()
         else:

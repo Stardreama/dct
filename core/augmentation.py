@@ -591,7 +591,7 @@ class DCTFeatureAugmenter:
             return dct_features
             
         except Exception as e:
-            self.logger.warning(f"augmentation.py中extract_dct_features函数DCT特征提取失败: {e}")
+            #self.logger.warning(f"augmentation.py中extract_dct_features函数DCT特征提取失败: {e}")
             # 返回固定大小的全零特征
             b, c, h, w = img_tensor.shape
             return torch.zeros((b, 12, h, w), device=img_tensor.device)
@@ -601,12 +601,12 @@ class DCTFeatureAugmenter:
 def verify_augmentation_config(config):
     """验证数据增强配置是否有效"""
     if not hasattr(config, 'DATA_AUGMENTATION'):
-        print("警告: 配置中缺少DATA_AUGMENTATION部分")
+        #print("警告: 配置中缺少DATA_AUGMENTATION部分")
         return False
         
     augmentation = config.DATA_AUGMENTATION
     if not getattr(augmentation, 'ENABLED', False):
-        print("数据增强未启用")
+        #print("数据增强未启用")
         return False
         
     # 验证必要的增强配置

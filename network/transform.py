@@ -142,14 +142,14 @@ class LocalColorDistortion:
 
             # 检查图像形状
             if len(img_np.shape) != 3 or img_np.shape[2] != 3:
-                print(f"警告: 颜色变换收到形状异常的图像 {img_np.shape}，返回原图")
+                #print(f"警告: 颜色变换收到形状异常的图像 {img_np.shape}，返回原图")
                 return img
 
             # 确保我们有正确的3维数组 [H, W, C]
             if img_np.shape[-1] != 3 and len(img_np.shape) > 3:
                 img_np = img_np.squeeze()  # 移除多余的维度
                 if img_np.shape[-1] != 3:
-                    print(f"警告: 颜色变换结果形状异常 {img_np.shape}，返回原图")
+                    #print(f"警告: 颜色变换结果形状异常 {img_np.shape}，返回原图")
                     return img
 
             if mask is None:
@@ -203,12 +203,12 @@ class LocalColorDistortion:
                 result = result.squeeze()  # 移除大小为1的维度
 
             if result.ndim != 3 or result.shape[2] != 3:
-                print(f"警告: 颜色变换结果形状异常 {result.shape}，返回原图")
+                #print(f"警告: 颜色变换结果形状异常 {result.shape}，返回原图")
                 return img
 
             return Image.fromarray(result.astype(np.uint8))
         except Exception as e:
-            print(f"颜色变换出错: {e}")
+            #print(f"颜色变换出错: {e}")
             return img  # 发生错误时返回原始图像
 
 
@@ -267,7 +267,7 @@ class FrequencyDomainTransform:
 
             # 检查图像形状
             if len(img_np.shape) != 3 or img_np.shape[2] != 3:
-                print(f"警告: DCT变换收到形状异常的图像 {img_np.shape}，跳过处理")
+                #print(f"警告: DCT变换收到形状异常的图像 {img_np.shape}，跳过处理")
                 return img
 
             result = np.zeros_like(img_np)
@@ -307,12 +307,12 @@ class FrequencyDomainTransform:
 
             # 确保结果是正确的形状和类型
             if result.shape != img_np.shape:
-                print(f"警告: DCT结果形状 {result.shape} 与输入 {img_np.shape} 不匹配，返回原图")
+                #print(f"警告: DCT结果形状 {result.shape} 与输入 {img_np.shape} 不匹配，返回原图")
                 return img
 
             return Image.fromarray(result.astype(np.uint8))
         except Exception as e:
-            print(f"DCT numpy处理出错: {e}")
+            #print(f"DCT numpy处理出错: {e}")
             # 发生错误时返回原始图像
             return img
     

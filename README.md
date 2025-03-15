@@ -195,7 +195,7 @@ python app.py --model_path path/to/model_best.pth
 ## 项目结构
 
 
-```csharp
+```bash
 DCT_RGB_HRNet/
 ├── config.yaml          # 配置文件
 ├── train.py             # 训练脚本

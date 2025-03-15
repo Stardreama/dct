@@ -1,22 +1,22 @@
 GPUS: 1
 LOG_DIR: "log/"
 OUTPUT_DIR: "output/"
-WORKERS: 0
+WORKERS: 16
 PRINT_FREQ: 1000
 TRAIN_PATH: "dataset"
 VAL_PATH: "dataset"
 TEST_PATH: "dataset"
 TYPE: ""
-EPOCHES: 5
-BATCH_SIZE: 8
+EPOCHES: 100
+BATCH_SIZE: 64
 
 # 新增模型类型和配置
 MODEL_CONFIG:
-  TYPE: 'forensics'
-  MODE: 'Both'
+  TYPE: "forensics"
+  MODE: "Both"
   IMG_SIZE: 256
   NUM_CLASSES: 2
-  PRETRAINED: null  # 设为null禁用预训练模型
+  PRETRAINED: null # 设为null禁用预训练模型
   ATTENTION:
     TYPE: "forensic_fusion" # 'coordinate', 'frequency', 'self_mutual', 'boundary', 'forensic_fusion'
     REDUCTION: 16
@@ -94,7 +94,7 @@ DATA_AUGMENTATION:
 # 优化器配置
 OPTIMIZER:
   NAME: "adamw" # 'sgd', 'adam', 'adamw'
-  LR: 0.0002
+  LR: 0.0006
   WEIGHT_DECAY: 0.0001
   MOMENTUM: 0.9 # 用于SGD
   BETA1: 0.9 # 用于Adam/AdamW
@@ -112,7 +112,7 @@ LR_SCHEDULER:
   NAME: "cosine" # 'step', 'multistep', 'cosine', 'plateau'
   WARMUP:
     ENABLED: true
-    EPOCHS: 5
+    EPOCHS: 10
     MULTIPLIER: 1.0
     METHOD: "linear" # 'linear', 'constant'
   COSINE:
@@ -137,7 +137,7 @@ TRAINING:
     ENABLED: true # 启用EMA模型
     DECAY: 0.999 # EMA衰减率
   VALIDATION:
-    FREQ: 100 # 每100步验证一次
+    FREQ: 1000 # 每500步验证一次
     METRIC: "accuracy" # 验证指标
   EARLY_STOPPING:
     ENABLED: true
@@ -145,14 +145,14 @@ TRAINING:
     MIN_DELTA: 0.001 # 最小改进差值
   # 渐进式训练
   PROGRESSIVE:
-    ENABLED: false
+    ENABLED: true
     STAGES:
-      - { EPOCHS: 10, FREEZE: ["backbone"], UNFREEZE: [] }
+      - { EPOCHS: 20, FREEZE: [], UNFREEZE: ["attention", "fusion"] } # 首先训练注意力和融合部分
       - {
-          EPOCHS: 20,
+          EPOCHS: 80,
           FREEZE: [],
-          UNFREEZE: ["backbone", "fusion", "attention"],
-        }
+          UNFREEZE: ["backbone", "attention", "fusion"],
+        } # 然后训练整个网络
   RESUME:
     ENABLED: false
     PATH: ""

@@ -618,7 +618,7 @@ class EnhancedForensicDataset(BaseForensicDataset):
                         # 直接使用DCT提取器处理YCbCr图像
                         dct_features = self.dct_extractor(ycbcr_img)
                     except Exception as e1:
-                        print(f"自定义YCbCr转换DCT提取失败: {e1}")
+                        #print(f"自定义YCbCr转换DCT提取失败: {e1}")
                         # 尝试简单的DCT提取备用方案
                         try:
                             # 使用简单的DCT变换作为替代
@@ -657,15 +657,15 @@ class EnhancedForensicDataset(BaseForensicDataset):
 
                             dct_features = combined_dct.squeeze(0).cpu()
 
-                            print("使用备用DCT提取方法成功")
+                            #print("使用备用DCT提取方法成功")
                         except Exception as e2:
-                            print(f"备用DCT提取也失败: {e2}")
+                            #print(f"备用DCT提取也失败: {e2}")
                             # 创建零填充的张量作为替代
                             dct_features = torch.zeros((63, 256, 256), device='cpu')
 
                 return img, dct_features, img_mask, label
             except Exception as e:
-                print(f"dataset.py中__getitem__函数DCT特征提取失败: {e}")
+                #print(f"dataset.py中__getitem__函数DCT特征提取失败: {e}")
                 # 返回零张量作为DCT特征
                 dct_features = torch.zeros((63, 256, 256))
                 return img, dct_features, img_mask, label
