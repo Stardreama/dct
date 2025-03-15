@@ -11,7 +11,7 @@ import logging
 from sklearn.metrics import confusion_matrix
 import itertools
 from typing import List, Dict, Any, Tuple, Optional, Union
-
+import torchvision.transforms as transforms  # 添加这行导入
 
 class ForensicVisualizer:
     """
@@ -587,6 +587,490 @@ class ForensicVisualizer:
             
         self.logger.info(f"评估报告已保存至: {save_dir / 'evaluation_report.html'}")
 
+    def visualize_attention_maps(self, model, images, device='cuda', save_dir=None, layer_names=None):
+        """
+        可视化模型的注意力图
+        
+        Args:
+            model: 模型实例
+            images: 输入图像列表或张量
+            device: 设备
+            save_dir: 保存目录
+            layer_names: 层名称列表
+        """
+        # 确保save_dir存在
+        if save_dir:
+            save_dir = Path(save_dir) / 'attention_maps'
+            save_dir.mkdir(exist_ok=True, parents=True)
+            
+        # 转换为张量
+        if not torch.is_tensor(images):
+            transform = transforms.ToTensor()
+            images_tensor = torch.stack([transform(img) for img in images])
+        else:
+            images_tensor = images
+            
+        # 移动到设备
+        images_tensor = images_tensor.to(device)
+        model = model.to(device)
+        model.eval()
+        
+        with torch.no_grad():
+            # 尝试获取注意力图
+            try:
+                # 检查是否支持get_attention_maps方法
+                if hasattr(model, 'get_attention_maps'):
+                    attention_maps = model.get_attention_maps(images_tensor)
+                # 否则尝试从ForensicAttentionFusion模块获取
+                elif (hasattr(model, 'feature_fusion') and 
+                      hasattr(model.feature_fusion, 'get_attention_maps')):
+                    # 先做一次前向传播
+                    _ = model(images_tensor)
+                    # 然后获取注意力图
+                    attention_maps = model.feature_fusion.get_attention_maps()
+                # 直接执行前向传播，看是否生成attention_map属性
+                else:
+                    _ = model(images_tensor)
+                    # 尝试从多个可能的位置获取注意力图
+                    attention_maps = None
+                    for attr_name in ['last_attention_map', 'attention_map', 'attn_weights']:
+                        for module in [model, 
+                                      getattr(model, 'model', None), 
+                                      getattr(model, 'feature_fusion', None),
+                                      getattr(model, 'boundary_module', None)]:
+                            if module is not None and hasattr(module, attr_name):
+                                attention_maps = getattr(module, attr_name)
+                                break
+                        if attention_maps is not None:
+                            break
+                            
+                if attention_maps is None:
+                    self.logger.warning("无法获取注意力图，模型可能不支持")
+                    return None
+                    
+            except Exception as e:
+                self.logger.error(f"获取注意力图失败: {e}")
+                return None
+                
+        # 可视化每张图的注意力图
+        results = []
+        for i, (img, attn_map) in enumerate(zip(images_tensor, attention_maps)):
+            # 注意力图可能有多个头或层
+            if attn_map.dim() > 2:
+                # 如果是多头注意力，取平均
+                if attn_map.dim() == 3:  # [num_heads, h, w]
+                    attn_map = attn_map.mean(0)  # [h, w]
+                elif attn_map.dim() == 4:  # [batch, num_heads, h, w]
+                    attn_map = attn_map.mean(1)  # [batch, h, w]
+                    
+            # 生成可视化图像
+            img_np = img.permute(1, 2, 0).cpu().numpy()
+            img_np = (img_np - img_np.min()) / (img_np.max() - img_np.min())
+            
+            attn_np = attn_map.cpu().numpy()
+            attn_np = (attn_np - attn_np.min()) / (attn_np.max() - attn_np.min() + 1e-8)
+            
+            # 生成热力图叠加
+            viz_img = self.visualize_attention(img_np, attn_np, 
+                                               save_path=f"{save_dir}/attention_map_{i}.png" if save_dir else None)
+            results.append(viz_img)
+            
+        return results
+        
+    def visualize_dct_features(self, model, images, device='cuda', save_dir=None):
+        """
+        可视化DCT特征
+        
+        Args:
+            model: 模型实例
+            images: 输入图像列表或张量
+            device: 设备
+            save_dir: 保存目录
+        """
+        # 确保save_dir存在
+        if save_dir:
+            save_dir = Path(save_dir) / 'dct_features'
+            save_dir.mkdir(exist_ok=True, parents=True)
+            
+        # 转换为张量
+        if not torch.is_tensor(images):
+            transform = transforms.ToTensor()
+            images_tensor = torch.stack([transform(img) for img in images])
+        else:
+            images_tensor = images
+            
+        # 移动到设备
+        images_tensor = images_tensor.to(device)
+        model = model.to(device)
+        model.eval()
+        
+        with torch.no_grad():
+            # 尝试获取DCT特征
+            try:
+                # 直接使用模型提取DCT特征
+                if hasattr(model, 'FAD_head'):
+                    dct_features = model.FAD_head(images_tensor)
+                elif hasattr(model, 'dct_extractor'):
+                    dct_features = model.dct_extractor(images_tensor)
+                else:
+                    # 导入DCT变换模块，创建临时提取器
+                    from network.dct_transform import MultiScaleFrequencyExtractor
+                    dct_extractor = MultiScaleFrequencyExtractor(in_channels=3, out_channels=12).to(device)
+                    dct_features = dct_extractor(images_tensor)
+                    
+            except Exception as e:
+                self.logger.error(f"获取DCT特征失败: {e}")
+                return None
+                
+        # 可视化每张图的DCT特征
+        results = []
+        for i, (img, dct_feat) in enumerate(zip(images_tensor, dct_features)):
+            # 准备可视化
+            img_np = img.permute(1, 2, 0).cpu().numpy()
+            img_np = (img_np - img_np.min()) / (img_np.max() - img_np.min())
+            
+            # DCT特征可能有多个通道
+            n_channels = min(12, dct_feat.size(0))
+            
+            # 创建可视化图表
+            plt.figure(figsize=(15, 10))
+            
+            # 显示原始图像
+            plt.subplot(4, 4, 1)
+            plt.imshow(img_np)
+            plt.title("原始图像")
+            plt.axis('off')
+            
+            # 显示每个DCT通道
+            for ch in range(n_channels):
+                plt.subplot(4, 4, ch + 2)
+                dct_ch = dct_feat[ch].cpu().numpy()
+                dct_ch = (dct_ch - dct_ch.min()) / (dct_ch.max() - dct_ch.min() + 1e-8)
+                plt.imshow(dct_ch, cmap='viridis')
+                plt.title(f"DCT通道 {ch+1}")
+                plt.axis('off')
+            
+            # 保存或显示
+            if save_dir:
+                plt.savefig(f"{save_dir}/dct_features_{i}.png", dpi=self.dpi, bbox_inches='tight')
+                plt.close()
+                results.append(f"{save_dir}/dct_features_{i}.png")
+            else:
+                plt.tight_layout()
+                plt.show()
+                results.append(plt.gcf())
+                plt.close()
+                
+        return results
+        
+    def visualize_boundary_detection(self, images, pred_masks, true_masks=None, save_dir=None):
+        """
+        可视化边界检测结果
+        
+        Args:
+            images: 输入图像列表或张量
+            pred_masks: 预测掩码列表或张量
+            true_masks: 真实掩码列表或张量（可选）
+            save_dir: 保存目录
+        """
+        # 确保save_dir存在
+        if save_dir:
+            save_dir = Path(save_dir) / 'boundary_detection'
+            save_dir.mkdir(exist_ok=True, parents=True)
+            
+        # 转换为numpy数组
+        if torch.is_tensor(images):
+            images = images.cpu().numpy()
+        if torch.is_tensor(pred_masks):
+            pred_masks = pred_masks.cpu().numpy()
+        if true_masks is not None and torch.is_tensor(true_masks):
+            true_masks = true_masks.cpu().numpy()
+            
+        # 限制样本数量
+        n_samples = min(len(images), 8)
+        
+        results = []
+        for i in range(n_samples):
+            # 处理图像格式
+            img = images[i]
+            if img.shape[0] == 3:  # 通道在前，转换到后面
+                img = img.transpose(1, 2, 0)
+            img = (img - img.min()) / (img.max() - img.min())
+            
+            # 处理掩码
+            pred_mask = pred_masks[i].squeeze()
+            true_mask = true_masks[i].squeeze() if true_masks is not None else None
+            
+            # 二值化掩码并提取边界
+            pred_mask_bin = (pred_mask > 0.5).astype(np.uint8) * 255
+            pred_boundary = cv2.Canny(pred_mask_bin, 100, 200)
+            
+            if true_mask is not None:
+                true_mask_bin = (true_mask > 0.5).astype(np.uint8) * 255
+                true_boundary = cv2.Canny(true_mask_bin, 100, 200)
+                
+                # 计算IoU
+                intersection = np.logical_and(pred_mask_bin > 0, true_mask_bin > 0).sum()
+                union = np.logical_or(pred_mask_bin > 0, true_mask_bin > 0).sum()
+                iou = intersection / union if union > 0 else 0
+                
+                # 计算边界IoU
+                pred_boundary_points = set(zip(*np.where(pred_boundary > 0)))
+                true_boundary_points = set(zip(*np.where(true_boundary > 0)))
+                
+                boundary_intersection = len(pred_boundary_points.intersection(true_boundary_points))
+                boundary_union = len(pred_boundary_points.union(true_boundary_points))
+                boundary_iou = boundary_intersection / boundary_union if boundary_union > 0 else 0
+            
+            # 创建可视化图像
+            plt.figure(figsize=(15, 10))
+            
+            # 子图数量取决于是否有真实掩码
+            n_cols = 4 if true_mask is not None else 3
+            
+            # 显示原始图像
+            plt.subplot(1, n_cols, 1)
+            plt.imshow(img)
+            plt.title("原始图像")
+            plt.axis('off')
+            
+            # 显示预测掩码
+            plt.subplot(1, n_cols, 2)
+            plt.imshow(pred_mask, cmap='jet', vmin=0, vmax=1)
+            plt.title("预测掩码")
+            plt.axis('off')
+            
+            # 显示预测边界叠加在原始图像上
+            plt.subplot(1, n_cols, 3)
+            img_with_boundary = img.copy()
+            img_with_boundary[pred_boundary > 0] = [1, 0, 0]  # 红色边界
+            plt.imshow(img_with_boundary)
+            plt.title("预测边界")
+            plt.axis('off')
+            
+            # 如果有真实掩码，显示真实边界
+            if true_mask is not None:
+                plt.subplot(1, n_cols, 4)
+                img_with_true_boundary = img.copy()
+                img_with_true_boundary[true_boundary > 0] = [0, 1, 0]  # 绿色边界
+                plt.imshow(img_with_true_boundary)
+                plt.title(f"真实边界\nIoU: {iou:.3f}\n边界IoU: {boundary_iou:.3f}")
+                plt.axis('off')
+                
+            # 保存或显示
+            if save_dir:
+                plt.savefig(f"{save_dir}/boundary_{i}.png", dpi=self.dpi, bbox_inches='tight')
+                plt.close()
+                results.append(f"{save_dir}/boundary_{i}.png")
+            else:
+                plt.tight_layout()
+                plt.show()
+                results.append(plt.gcf())
+                plt.close()
+                
+        return results
+        
+    def visualize_multi_model_comparison(self, images, predictions_dict, true_labels=None, save_dir=None):
+        """
+        可视化多个模型预测结果的比较
+        
+        Args:
+            images: 输入图像列表或张量
+            predictions_dict: 模型名称到预测结果的字典，每个元素包含掩码、概率等
+            true_labels: 真实标签列表（可选）
+            save_dir: 保存目录
+        """
+        # 确保save_dir存在
+        if save_dir:
+            save_dir = Path(save_dir) / 'model_comparison'
+            save_dir.mkdir(exist_ok=True, parents=True)
+            
+        # 转换为numpy数组
+        if torch.is_tensor(images):
+            images = images.cpu().numpy()
+            
+        # 模型数量
+        n_models = len(predictions_dict)
+        model_names = list(predictions_dict.keys())
+        
+        # 限制样本数量
+        n_samples = min(len(images), 6)
+        
+        results = []
+        for i in range(n_samples):
+            # 处理图像格式
+            img = images[i]
+            if img.shape[0] == 3:  # 通道在前，转换到后面
+                img = img.transpose(1, 2, 0)
+            img = (img - img.min()) / (img.max() - img.min())
+            
+            # 创建可视化图表
+            plt.figure(figsize=(4 + 4 * n_models, 8))
+            
+            # 显示原始图像
+            plt.subplot(2, n_models + 1, 1)
+            plt.imshow(img)
+            title = "原始图像"
+            if true_labels is not None:
+                title += f"\n真实标签: {'伪造' if true_labels[i] == 1 else '真实'}"
+            plt.title(title)
+            plt.axis('off')
+            
+            # 为每个模型显示预测结果
+            for j, model_name in enumerate(model_names):
+                predictions = predictions_dict[model_name]
+                
+                # 获取该模型对当前样本的预测
+                pred_mask = predictions['masks'][i] if 'masks' in predictions else None
+                pred_prob = predictions['probs'][i] if 'probs' in predictions else None
+                pred_label = predictions['preds'][i] if 'preds' in predictions else None
+                
+                # 显示预测掩码
+                if pred_mask is not None:
+                    plt.subplot(2, n_models + 1, j + 2)
+                    if isinstance(pred_mask, np.ndarray):
+                        plt.imshow(pred_mask.squeeze(), cmap='jet', vmin=0, vmax=1)
+                    else:  # 张量
+                        plt.imshow(pred_mask.squeeze().cpu().numpy(), cmap='jet', vmin=0, vmax=1)
+                    plt.title(f"{model_name}\n掩码")
+                    plt.axis('off')
+                
+                # 显示掩码叠加图
+                if pred_mask is not None:
+                    plt.subplot(2, n_models + 1, n_models + j + 3)
+                    # 创建掩码叠加图像
+                    if isinstance(pred_mask, np.ndarray):
+                        mask_np = pred_mask.squeeze()
+                    else:  # 张量
+                        mask_np = pred_mask.squeeze().cpu().numpy()
+                        
+                    mask_rgb = cv2.applyColorMap(np.uint8(mask_np * 255), cv2.COLORMAP_JET)
+                    mask_rgb = cv2.cvtColor(mask_rgb, cv2.COLOR_BGR2RGB) / 255.0
+                    
+                    overlay = img * 0.7 + mask_rgb * 0.3
+                    
+                    plt.imshow(overlay)
+                    title = f"预测: {'伪造' if pred_label == 1 else '真实'}"
+                    if pred_prob is not None:
+                        title += f"\n概率: {pred_prob:.3f}"
+                    plt.title(title)
+                    plt.axis('off')
+            
+            # 保存或显示
+            if save_dir:
+                plt.savefig(f"{save_dir}/comparison_{i}.png", dpi=self.dpi, bbox_inches='tight')
+                plt.close()
+                results.append(f"{save_dir}/comparison_{i}.png")
+            else:
+                plt.tight_layout()
+                plt.show()
+                results.append(plt.gcf())
+                plt.close()
+                
+        return results
+        
+    def update_evaluation_report(self, metrics, boundary_metrics=None, freq_analysis=None, save_dir=None):
+        """
+        更新评估报告，包括边界检测和频域分析
+        
+        Args:
+            metrics: 基本评估指标
+            boundary_metrics: 边界检测评估指标
+            freq_analysis: 频域分析结果
+            save_dir: 保存目录
+        """
+        # 已有代码的增强版
+        save_dir = Path(save_dir) if save_dir else self.save_dir
+        if not save_dir:
+            self.logger.warning("未指定保存目录，无法创建评估报告")
+            return
+            
+        save_dir.mkdir(exist_ok=True, parents=True)
+        
+        # 合并指标
+        complete_metrics = dict(metrics)
+        if boundary_metrics:
+            complete_metrics['boundary_metrics'] = boundary_metrics
+        if freq_analysis:
+            complete_metrics['frequency_analysis'] = freq_analysis
+        
+        # 调用原有方法创建基本报告
+        self.create_evaluation_report(complete_metrics, save_dir)
+        
+        # 添加边界检测评估部分到HTML报告
+        if boundary_metrics:
+            self._append_to_html_report(save_dir / 'evaluation_report.html', self._create_boundary_html(boundary_metrics))
+            
+        # 添加频域分析部分到HTML报告
+        if freq_analysis:
+            self._append_to_html_report(save_dir / 'evaluation_report.html', self._create_frequency_html(freq_analysis))
+            
+    def _create_boundary_html(self, boundary_metrics):
+        """创建边界检测评估的HTML内容"""
+        html_content = [
+            "    <div class='section'>",
+            "        <h2>边界检测评估</h2>",
+            "        <div class='metrics-container'>"
+        ]
+        
+        for k, v in boundary_metrics.items():
+            html_content.append(f"            <div class='metric'><b>{k.replace('_', ' ').title()}:</b> {v:.4f}</div>")
+            
+        html_content.extend([
+            "        </div>",
+            "        <div class='chart-container'>",
+            "            <img src='boundary_metrics_chart.png' alt='边界检测指标图表'>",
+            "        </div>",
+            "    </div>"
+        ])
+        
+        return html_content
+        
+    def _create_frequency_html(self, freq_analysis):
+        """创建频域分析的HTML内容"""
+        html_content = [
+            "    <div class='section'>",
+            "        <h2>频域分析</h2>",
+            "        <div class='metrics-container'>"
+        ]
+        
+        if isinstance(freq_analysis, dict) and 'stats' in freq_analysis:
+            for k, v in freq_analysis['stats'].items():
+                html_content.append(f"            <div class='metric'><b>{k.title()}:</b> {v:.4f}</div>")
+                
+        html_content.extend([
+            "        </div>",
+            "        <div class='chart-container'>",
+            "            <img src='frequency_analysis/frequency_response.png' alt='频率响应'>",
+            "        </div>",
+            "    </div>"
+        ])
+        
+        return html_content
+        
+    def _append_to_html_report(self, html_path, content_lines):
+        """向HTML报告添加内容"""
+        if not html_path.exists():
+            self.logger.warning(f"HTML报告不存在: {html_path}")
+            return
+            
+        with open(html_path, 'r') as f:
+            content = f.readlines()
+            
+        # 在</body>标签前插入内容
+        insert_pos = -1
+        for i, line in enumerate(content):
+            if '</body>' in line:
+                insert_pos = i
+                break
+                
+        if insert_pos >= 0:
+            new_content = content[:insert_pos] + [line + '\n' for line in content_lines] + content[insert_pos:]
+            
+            with open(html_path, 'w') as f:
+                f.writelines(new_content)
+        else:
+            self.logger.warning("无法找到HTML报告中的</body>标签位置")
 
 # 便于测试的主函数
 if __name__ == "__main__":

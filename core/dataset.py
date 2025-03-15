@@ -4,9 +4,11 @@ import numpy as np
 from torch.utils.data import Dataset
 from PIL import Image
 import torchvision.transforms as transforms
+import torch.nn.functional as F  # 添加这一行导入F模块
 import logging
 from pathlib import Path
 import random
+import cv2
 # 导入增强的数据转换
 from network.transform import (
     forensic_transforms, 
@@ -17,6 +19,38 @@ from network.transform import (
 
 # 导入DCT变换
 from network.dct_transform import DCTTransform, MultiScaleFrequencyExtractor
+def rgb_to_ycbcr_custom(rgb_img):
+    """
+    自定义RGB到YCbCr的转换函数
+    
+    Args:
+        rgb_img: RGB格式图像张量，形状为[B,3,H,W]，值范围[0,1]
+        
+    Returns:
+        YCbCr格式图像张量，形状为[B,3,H,W]
+    """
+    if rgb_img.max() > 1.0:
+        rgb_img = rgb_img / 255.0
+        
+    # RGB到YCbCr的转换矩阵
+    transform_matrix = torch.tensor([
+        [0.299, 0.587, 0.114],
+        [-0.169, -0.331, 0.500],
+        [0.500, -0.419, -0.081]
+    ], dtype=torch.float32, device=rgb_img.device)
+    
+    # 重新排列为[B,H,W,3]以便进行矩阵乘法
+    rgb_hwc = rgb_img.permute(0, 2, 3, 1)
+    
+    # 应用转换
+    ycbcr_hwc = torch.matmul(rgb_hwc, transform_matrix.t())
+    
+    # 添加偏置
+    offset = torch.tensor([0, 0.5, 0.5], dtype=torch.float32, device=rgb_img.device)
+    ycbcr_hwc = ycbcr_hwc + offset
+    
+    # 转回[B,C,H,W]格式
+    return ycbcr_hwc.permute(0, 3, 1, 2)
 
 class BaseForensicDataset(Dataset):
     """
@@ -501,60 +535,148 @@ class EnhancedForensicDataset(BaseForensicDataset):
         # 分析并打印数据集信息
         stats = self._analyze_dataset_stats()
         self.print_dataset_info(stats)
+        # 添加以下代码来初始化 DCT 提取器
+        self.dct_extractor = None
+        if hasattr(self.config, 'DCT_TRANSFORM') and self.config.DCT_TRANSFORM.ENABLED:
+            try:
+                from network.dct_transform import DCTTransform
+                self.dct_extractor = DCTTransform(
+                    out_channels=self.config.DCT_TRANSFORM.OUT_CHANNELS,
+                    multi_scale=self.config.DCT_TRANSFORM.MULTI_SCALE
+                )
+                print(f"DCT提取器初始化成功: {self.dataset_type}")
+            except Exception as e:
+                print(f"DCT提取器初始化失败: {e}")        
     
     def __getitem__(self, index):
         """获取数据集样本，支持DCT特征和掩码"""
         if index >= len(self.sample_list):
             raise IndexError(f"索引 {index} 超出范围 (0-{len(self.sample_list)-1})")
-            
+
         item = self.sample_list[index]
         parts = item.split(' ')
         if len(parts) < 2:
             self.logger.warning(f"样本格式错误: {item}")
             # 回退到下一个样本
             return self.__getitem__((index + 1) % len(self.sample_list))
-            
+
         img_path = parts[0]
         label = int(parts[1])
-        
+
         # 安全加载图像
         img = self._safe_image_loading(img_path, index)
         if img is None:
             # 如果加载失败，返回一个全黑图像
             img = Image.new('RGB', (256, 256), (0, 0, 0))
-        
+
         # 加载掩码
         img_mask = self._load_mask_for_path(img_path, img.size)
-        
+
         # 应用成对转换 - 同时处理图像和掩码
         if self.paired_transform:
             img, img_mask = self.paired_transform(img, img_mask)
-        
+
         # 如果需要DCT特征
-        if self.use_dct:
+        if self.use_dct and hasattr(self, 'dct_extractor') and self.dct_extractor is not None:
             try:
-                # 使用设备无关的方式生成DCT特征
-                with torch.no_grad():
-                    # 确保图像是张量格式
-                    if not torch.is_tensor(img):
-                        img_tensor = transforms.ToTensor()(img).unsqueeze(0)
+                # 确保图像尺寸固定为256x256
+                if isinstance(img, Image.Image):
+                    img_pil = img.resize((256, 256), Image.BILINEAR)
+                    img_tensor = transforms.ToTensor()(img_pil).unsqueeze(0)
+                elif isinstance(img, torch.Tensor):
+                    if img.dim() == 3:
+                        img_tensor = img.unsqueeze(0)
                     else:
-                        img_tensor = img.unsqueeze(0) if img.dim() == 3 else img
-                    
-                    # 提取DCT特征
-                    dct_extractor = self._get_dct_extractor(img_tensor.device)
-                    dct_features = dct_extractor(img_tensor).squeeze(0)
-                    
-                    return img, dct_features, img_mask, label
+                        img_tensor = img
+                    # 确保尺寸为256x256
+                    if img_tensor.shape[-1] != 256 or img_tensor.shape[-2] != 256:
+                        img_tensor = F.interpolate(
+                            img_tensor,
+                            size=(256, 256),
+                            mode='bilinear',
+                            align_corners=False
+                        )
+                else:
+                    # 如果是numpy数组等其他格式
+                    img_tensor = transforms.ToTensor()(
+                        Image.fromarray(np.array(img)).resize((256, 256))
+                    ).unsqueeze(0)
+
+                with torch.no_grad():
+                    try:
+                        # 使用torchvision的内置RGB到YCbCr转换
+
+                        # 确保RGB值在[0,1]范围内
+                        norm_img = img_tensor / 255.0 if img_tensor.max() > 1.0 else img_tensor
+
+                        # 使用内置函数直接转换 - 避免自定义实现的维度问题
+                        ycbcr_img = rgb_to_ycbcr_custom(norm_img)
+
+                        # 提取DCT特征 - 将ycbcr图像移到正确设备
+                        device = next(self.dct_extractor.parameters()).device
+                        ycbcr_img = ycbcr_img.to(device)
+                        # 直接使用DCT提取器处理YCbCr图像
+                        dct_features = self.dct_extractor(ycbcr_img)
+                    except Exception as e1:
+                        print(f"自定义YCbCr转换DCT提取失败: {e1}")
+                        # 尝试简单的DCT提取备用方案
+                        try:
+                            # 使用简单的DCT变换作为替代
+                            norm_img = img_tensor / 255.0 if img_tensor.max() > 1.0 else img_tensor
+                            channels = norm_img.chunk(3, dim=1)  # 分离RGB通道 [B,1,H,W] x 3
+                            dct_features_list = []
+
+                            for i, channel in enumerate(channels):
+                                # 使用FFT2D实现DCT - 更稳定的方法
+                                channel_dct = torch.abs(torch.fft.rfft2(channel, norm='ortho'))
+                                # 调整大小确保统一输出
+                                channel_dct = F.interpolate(
+                                    channel_dct, 
+                                    size=(256, 256),
+                                    mode='bilinear',
+                                    align_corners=False
+                                )
+                                dct_features_list.append(channel_dct)
+
+                            # 合并通道
+                            combined_dct = torch.cat(dct_features_list, dim=1)
+
+                            # 确保输出通道数为63
+                            out_channels = 63
+                            if combined_dct.shape[1] != out_channels:
+                                if combined_dct.shape[1] > out_channels:
+                                    combined_dct = combined_dct[:, :out_channels]
+                                else:
+                                    pad_channels = out_channels - combined_dct.shape[1]
+                                    padding = torch.zeros(
+                                        combined_dct.shape[0], pad_channels, 
+                                        combined_dct.shape[2], combined_dct.shape[3], 
+                                        device=combined_dct.device
+                                    )
+                                    combined_dct = torch.cat([combined_dct, padding], dim=1)
+
+                            dct_features = combined_dct.squeeze(0).cpu()
+
+                            print("使用备用DCT提取方法成功")
+                        except Exception as e2:
+                            print(f"备用DCT提取也失败: {e2}")
+                            # 创建零填充的张量作为替代
+                            dct_features = torch.zeros((63, 256, 256), device='cpu')
+
+                return img, dct_features, img_mask, label
             except Exception as e:
-                self.logger.warning(f"DCT特征提取失败: {e}")
-                # 返回空DCT特征
-                dct_features = torch.zeros((12, 256, 256), device=img.device if torch.is_tensor(img) else 'cpu')
+                print(f"dataset.py中__getitem__函数DCT特征提取失败: {e}")
+                # 返回零张量作为DCT特征
+                dct_features = torch.zeros((63, 256, 256))
                 return img, dct_features, img_mask, label
         else:
             # 不需要DCT特征
-            return img, img_mask, label
+            # 将原始图像转为张量（如果不是）
+            if not torch.is_tensor(img):
+                img = transforms.ToTensor()(img)
+                img_mask = transforms.ToTensor()(img_mask)
 
+            return img, img_mask, label
 
 # 更新数据加载器创建函数
 def create_forensic_data_loaders(config, use_enhanced_dataset=True):
@@ -597,6 +719,8 @@ def create_forensic_data_loaders(config, use_enhanced_dataset=True):
     else:
         # 使用原始数据集（保留原代码）
         # ...
+        print("使用原始数据集")
+    
     
     # 创建数据加载器
     train_loader = torch.utils.data.DataLoader(

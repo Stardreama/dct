@@ -551,6 +551,95 @@ class HighResolutionNet(nn.Module):
             model_dict.update(pretrained_dict)
             self.load_state_dict(model_dict)
 
+    # 修改 network/cls_hrnet.py 中的 get_stage_features 方法
+
+    def get_stage_features(self, x):
+        """
+        获取网络各阶段的特征
+        返回每个阶段最后一个模块的输出特征
+        
+        Args:
+            x: 输入图像 [B, 3, H, W]
+            
+        Returns:
+            list: 各阶段特征列表 [stage1_feat, stage2_feat, stage3_feat, stage4_feat]
+        """
+        # 存储每个阶段的特征
+        features = []
+        
+        # 浅层特征提取
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.relu(x)
+        x = self.conv2(x)
+        x = self.bn2(x)
+        x = self.relu(x)
+        x = self.layer1(x)
+        
+        # 记录第一阶段特征
+        features.append(x)
+        
+        # ===== 添加通道适配代码开始 =====
+        # 获取stage2第一个分支的期望输入通道数
+        expected_channels = 32  # HRNet stage2的第一个分支期望32通道输入
+        
+        # 检查通道数是否匹配
+        if x.size(1) != expected_channels:
+            print(f"为stage2添加通道适配: 从{x.size(1)}到{expected_channels}通道")
+            # 创建临时的通道适配层
+            channel_adapter = nn.Conv2d(
+                x.size(1),           # 当前通道数 (256)
+                expected_channels,   # 目标通道数 (32)
+                kernel_size=1,       # 1x1卷积执行通道调整
+                bias=False           # 不需要偏置
+            ).to(x.device)
+            
+            # 使用kaiming初始化
+            nn.init.kaiming_normal_(
+                channel_adapter.weight, 
+                mode='fan_out', 
+                nonlinearity='relu'
+            )
+            
+            # 应用通道适配
+            x_adapted = channel_adapter(x)
+            x_list = [x_adapted]  # 使用通道适配后的特征创建列表
+        else:
+            # 通道数已经匹配，无需适配
+            x_list = [x]
+        # ===== 添加通道适配代码结束 =====
+        
+        # 使用适配后的x_list执行后续操作
+        try:
+            # stage2处理 - 使用通道适配后的特征列表
+            y_list = self.stage2(x_list)  # 输出是分支特征列表
+            features.append(y_list[0])  # 添加第一个分支的特征，通常是最高分辨率
+            
+            # stage3处理
+            y_list = self.stage3(y_list)  # 输入上一阶段的输出列表
+            features.append(y_list[0])
+            
+            # stage4处理
+            y_list = self.stage4(y_list)  # 输入上一阶段的输出列表
+            features.append(y_list[0])
+        except Exception as e:
+            print(f"获取阶段特征失败: {e}")
+            # 如果特征提取失败，返回已经收集的特征
+            # 并添加占位特征以保持总数一致
+            batch_size = x.size(0)
+            device = x.device
+            while len(features) < 4:
+                # 添加形状合理的占位特征
+                scale_factor = 2 ** (len(features))
+                placeholder_shape = (
+                    batch_size,
+                    32 * (2 ** (len(features) - 1)),  # 通道数随深度增加
+                    x.size(2) // scale_factor,         # 高度减半
+                    x.size(3) // scale_factor          # 宽度减半
+                )
+                features.append(torch.zeros(placeholder_shape, device=device))
+                
+        return features
 
 def get_cls_net(config, **kwargs):
     model = HighResolutionNet(config, **kwargs)

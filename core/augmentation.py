@@ -8,6 +8,175 @@ from random import random as rand_float
 import logging
 import torchvision.transforms as transforms
 
+# 导入DCT变换模块
+from network.dct_transform import DCTTransform, MultiScaleFrequencyExtractor
+
+
+# 添加伪造检测专用的增强方法
+class ForensicSpecificAugmenter:
+    """伪造检测专用增强方法集，针对伪造特征进行增强"""
+    
+    def __init__(self, config=None):
+        self.config = config
+        self.enabled = config is not None and hasattr(config, 'DATA_AUGMENTATION') and \
+                      hasattr(config.DATA_AUGMENTATION, 'FORENSIC_SPECIFIC') and \
+                      config.DATA_AUGMENTATION.FORENSIC_SPECIFIC.ENABLED
+        
+        self.logger = logging.getLogger("ForensicSpecificAugmenter")
+    
+    def boundary_blending(self, img, mask=None):
+        """边界混合模拟伪造区域边界不自然问题"""
+        if not self.enabled or not hasattr(self.config.DATA_AUGMENTATION.FORENSIC_SPECIFIC, 'BOUNDARY_BLENDING'):
+            return img, mask
+            
+        try:
+            cfg = self.config.DATA_AUGMENTATION.FORENSIC_SPECIFIC.BOUNDARY_BLENDING
+            
+            if not getattr(cfg, 'ENABLED', False) or rand_float() >= getattr(cfg, 'PROB', 0.3):
+                return img, mask
+                
+            # 如果没有掩码，创建一个随机区域
+            if mask is None:
+                w, h = img.size
+                mask = Image.new('L', img.size, 0)
+                draw = ImageDraw.Draw(mask)
+                
+                # 随机多边形
+                num_points = random.randint(3, 8)
+                points = []
+                center_x, center_y = w // 2, h // 2
+                for i in range(num_points):
+                    angle = 2 * np.pi * i / num_points
+                    r = random.uniform(0.2, 0.4) * min(w, h)
+                    x = int(center_x + r * np.cos(angle))
+                    y = int(center_y + r * np.sin(angle))
+                    points.append((x, y))
+                
+                draw.polygon(points, fill=255)
+            
+            # 获取混合参数
+            blend_range = getattr(cfg, 'BLEND_RANGE', [0.1, 0.3])
+            blend_width = int(random.uniform(blend_range[0], blend_range[1]) * min(img.size))
+            
+            # 转换为numpy处理
+            img_np = np.array(img)
+            mask_np = np.array(mask)
+            
+            # 确保掩码是二值的
+            if mask_np.max() > 1:
+                mask_np = mask_np / 255.0
+                
+            # 边界处理
+            kernel = np.ones((blend_width, blend_width), np.uint8)
+            dilated = cv2.dilate(mask_np, kernel, iterations=1)
+            boundary = dilated - mask_np
+            boundary = cv2.GaussianBlur(boundary, (blend_width*2+1, blend_width*2+1), 0)
+            
+            # 对边界应用模糊
+            blurred_img = cv2.GaussianBlur(img_np, (blend_width*2+1, blend_width*2+1), 0)
+            
+            # 在边界区域混合
+            boundary_3d = np.expand_dims(boundary, axis=-1) if len(img_np.shape) > 2 else boundary
+            result = img_np * (1 - boundary_3d) + blurred_img * boundary_3d
+            
+            return Image.fromarray(np.uint8(result)), mask
+                
+        except Exception as e:
+            self.logger.warning(f"边界混合增强失败: {e}")
+            return img, mask
+
+    def frequency_domain_manipulation(self, img):
+        """频域操作，模拟伪造图像在频域的特征"""
+        if not self.enabled or not hasattr(self.config.DATA_AUGMENTATION.FORENSIC_SPECIFIC, 'FREQUENCY_DOMAIN'):
+            return img
+            
+        try:
+            cfg = self.config.DATA_AUGMENTATION.FORENSIC_SPECIFIC.FREQUENCY_DOMAIN
+            
+            if not getattr(cfg, 'ENABLED', False) or rand_float() >= getattr(cfg, 'PROB', 0.3):
+                return img
+                
+            # 转换为numpy处理
+            img_np = np.array(img).astype(np.float32)
+            
+            # 对每个通道单独处理
+            result = np.zeros_like(img_np)
+            for c in range(3):
+                channel = img_np[:, :, c]
+                
+                # 傅里叶变换
+                dft = cv2.dft(channel, flags=cv2.DFT_COMPLEX_OUTPUT)
+                dft_shift = np.fft.fftshift(dft)
+                
+                # 随机选择是修改低频还是高频
+                if rand_float() > 0.5:
+                    # 增强高频
+                    rows, cols = channel.shape
+                    center_row, center_col = rows // 2, cols // 2
+                    mask = np.ones((rows, cols, 2), np.float32)
+                    
+                    # 低频区域降低影响
+                    r = int(min(rows, cols) * 0.1)  # 低频区域半径
+                    y, x = np.ogrid[:rows, :cols]
+                    mask_area = (y - center_row) ** 2 + (x - center_col) ** 2 <= r**2
+                    mask[mask_area] = 0.5  # 降低低频影响
+                    
+                    # 应用掩码
+                    dft_shift = dft_shift * mask
+                else:
+                    # 增强低频
+                    rows, cols = channel.shape
+                    center_row, center_col = rows // 2, cols // 2
+                    mask = np.ones((rows, cols, 2), np.float32)
+                    
+                    # 低频区域增强
+                    r = int(min(rows, cols) * 0.1)  # 低频区域半径
+                    y, x = np.ogrid[:rows, :cols]
+                    mask_area = (y - center_row) ** 2 + (x - center_col) ** 2 <= r**2
+                    mask[mask_area] = 1.2  # 增强低频
+                    
+                    # 应用掩码
+                    dft_shift = dft_shift * mask
+                    
+                # 逆变换
+                idft_shift = np.fft.ifftshift(dft_shift)
+                idft = cv2.idft(idft_shift)
+                result[:, :, c] = cv2.magnitude(idft[:, :, 0], idft[:, :, 1])
+                
+            # 归一化
+            cv2.normalize(result, result, 0, 255, cv2.NORM_MINMAX)
+            result = result.astype(np.uint8)
+            
+            return Image.fromarray(result)
+                
+        except Exception as e:
+            self.logger.warning(f"频域操作增强失败: {e}")
+            return img
+    
+    def apply_all(self, img, mask=None):
+        """应用所有伪造特定的增强方法"""
+        if not self.enabled:
+            return img, mask
+        
+        # 随机决定应用哪些增强
+        augmentations = []
+        if hasattr(self.config.DATA_AUGMENTATION.FORENSIC_SPECIFIC, 'BOUNDARY_BLENDING') and \
+           self.config.DATA_AUGMENTATION.FORENSIC_SPECIFIC.BOUNDARY_BLENDING.ENABLED:
+            augmentations.append(self.boundary_blending)
+            
+        if hasattr(self.config.DATA_AUGMENTATION.FORENSIC_SPECIFIC, 'FREQUENCY_DOMAIN') and \
+           self.config.DATA_AUGMENTATION.FORENSIC_SPECIFIC.FREQUENCY_DOMAIN.ENABLED and mask is None:
+            augmentations.append(lambda img, mask: (self.frequency_domain_manipulation(img), mask))
+        
+        if augmentations and rand_float() < 0.5:
+            # 随机选择一种增强应用
+            aug = random.choice(augmentations)
+            img, mask = aug(img, mask)
+            
+        return img, mask
+
+
+# 将伪造专用增强整合到主增强器中
 class ForensicAugmenter:
     """伪造检测数据增强器，提供各种数据增强方法"""
     def __init__(self, config=None):
@@ -15,6 +184,9 @@ class ForensicAugmenter:
         self.config = config
         self.enabled = config is not None and hasattr(config, 'DATA_AUGMENTATION') and config.DATA_AUGMENTATION.ENABLED
         self.logger = logging.getLogger("ForensicAugmenter")
+        
+        # 初始化伪造专用增强器
+        self.forensic_specific = ForensicSpecificAugmenter(config)
         
         # 记录可用的增强方法
         self.available_augmentations = []
@@ -348,7 +520,7 @@ class ForensicAugmenter:
             return img1, mask1, label1
             
     def apply_augmentation_sequence(self, img, mask=None):
-        """应用一系列增强操作"""
+        """应用一系列增强操作，包括伪造特定增强"""
         # 几何变换 (需要同时处理图像和掩码)
         img, mask = self.apply_random_rotation(img, mask)
         img, mask = self.apply_random_crop(img, mask)
@@ -360,7 +532,69 @@ class ForensicAugmenter:
         img = self.apply_jpeg_compression(img)
         img = self.apply_cutout(img)
         
+        # 伪造特定增强
+        img, mask = self.forensic_specific.apply_all(img, mask)
+        
         return img, mask
+
+
+# 添加模拟DCT特征的增强类
+class DCTFeatureAugmenter:
+    """DCT特征增强器，直接在DCT域进行增强"""
+    
+    def __init__(self, config=None):
+        self.config = config
+        self.enabled = config is not None and \
+                      hasattr(config, 'DCT_TRANSFORM') and \
+                      config.DCT_TRANSFORM.ENABLED
+        
+        self.logger = logging.getLogger("DCTFeatureAugmenter")
+        self.dct_extractor = None
+        
+    def _get_dct_extractor(self, device='cpu'):
+        """懒加载DCT特征提取器"""
+        if self.dct_extractor is None and self.enabled:
+            try:
+                out_channels = getattr(self.config.DCT_TRANSFORM, 'OUT_CHANNELS', 12)
+                multi_scale = getattr(self.config.DCT_TRANSFORM, 'MULTI_SCALE', True)
+                
+                if multi_scale:
+                    self.dct_extractor = MultiScaleFrequencyExtractor(in_channels=3, out_channels=out_channels)
+                else:
+                    self.dct_extractor = DCTTransform(in_channels=3, out_channels=out_channels)
+                    
+                self.dct_extractor = self.dct_extractor.to(device)
+                
+            except Exception as e:
+                self.logger.warning(f"DCT提取器初始化失败: {e}")
+                return None
+                
+        return self.dct_extractor
+    
+    def extract_dct_features(self, img_tensor):
+        """从图像张量提取DCT特征"""
+        if not self.enabled:
+            # 返回固定大小的全零特征
+            b, c, h, w = img_tensor.shape
+            return torch.zeros((b, 12, h, w), device=img_tensor.device)
+            
+        try:
+            extractor = self._get_dct_extractor(img_tensor.device)
+            if extractor is None:
+                # 返回固定大小的全零特征
+                b, c, h, w = img_tensor.shape
+                return torch.zeros((b, 12, h, w), device=img_tensor.device)
+                
+            with torch.no_grad():
+                dct_features = extractor(img_tensor)
+                
+            return dct_features
+            
+        except Exception as e:
+            self.logger.warning(f"augmentation.py中extract_dct_features函数DCT特征提取失败: {e}")
+            # 返回固定大小的全零特征
+            b, c, h, w = img_tensor.shape
+            return torch.zeros((b, 12, h, w), device=img_tensor.device)
 
 
 # 帮助函数：验证配置
@@ -387,7 +621,7 @@ def verify_augmentation_config(config):
     return True
 
 
-# 创建默认增强配置
+# 创建增强版默认配置
 def create_default_augmentation_config():
     """创建包含默认增强设置的配置"""
     from easydict import EasyDict
@@ -437,6 +671,25 @@ def create_default_augmentation_config():
     config.DATA_AUGMENTATION.MIXUP.ENABLED = True
     config.DATA_AUGMENTATION.MIXUP.PROBABILITY = 0.2
     config.DATA_AUGMENTATION.MIXUP.ALPHA_RANGE = [0.2, 0.8]
+    
+    # 添加伪造特定增强配置
+    config.DATA_AUGMENTATION.FORENSIC_SPECIFIC = EasyDict()
+    config.DATA_AUGMENTATION.FORENSIC_SPECIFIC.ENABLED = True
+    
+    config.DATA_AUGMENTATION.FORENSIC_SPECIFIC.BOUNDARY_BLENDING = EasyDict()
+    config.DATA_AUGMENTATION.FORENSIC_SPECIFIC.BOUNDARY_BLENDING.ENABLED = True
+    config.DATA_AUGMENTATION.FORENSIC_SPECIFIC.BOUNDARY_BLENDING.PROB = 0.3
+    config.DATA_AUGMENTATION.FORENSIC_SPECIFIC.BOUNDARY_BLENDING.BLEND_RANGE = [0.1, 0.3]
+    
+    config.DATA_AUGMENTATION.FORENSIC_SPECIFIC.FREQUENCY_DOMAIN = EasyDict()
+    config.DATA_AUGMENTATION.FORENSIC_SPECIFIC.FREQUENCY_DOMAIN.ENABLED = True
+    config.DATA_AUGMENTATION.FORENSIC_SPECIFIC.FREQUENCY_DOMAIN.PROB = 0.3
+    
+    # DCT变换配置
+    config.DCT_TRANSFORM = EasyDict()
+    config.DCT_TRANSFORM.ENABLED = True
+    config.DCT_TRANSFORM.OUT_CHANNELS = 12
+    config.DCT_TRANSFORM.MULTI_SCALE = True
     
     return config
 
@@ -553,6 +806,36 @@ def get_augmentation_pipeline(config=None, is_train=True):
     return augment_fn
 
 
+# 创建双输入管道
+def get_dual_input_pipeline(config=None, is_train=True):
+    """获取支持双输入(RGB+DCT)的增强管道"""
+    augmenter = ForensicAugmenter(config)
+    dct_augmenter = DCTFeatureAugmenter(config)
+    
+    # 标准张量转换
+    tensor_transforms = create_tensor_transforms()
+    
+    def dual_augment_fn(img, mask=None):
+        """应用增强管道并返回RGB和DCT双输入"""
+        # 应用一系列增强
+        img, mask = augmenter.apply_augmentation_sequence(img, mask)
+        
+        # 转换为张量
+        img_tensor = tensor_transforms['rgb'](img)
+        mask_tensor = tensor_transforms['gray'](mask) if mask is not None else None
+        
+        # 提取DCT特征
+        with torch.no_grad():
+            dct_tensor = dct_augmenter.extract_dct_features(img_tensor.unsqueeze(0)).squeeze(0)
+        
+        if mask is not None:
+            return img_tensor, dct_tensor, mask_tensor
+        else:
+            return img_tensor, dct_tensor
+    
+    return dual_augment_fn
+
+
 if __name__ == "__main__":
     # 测试增强器
     import sys
@@ -580,3 +863,62 @@ if __name__ == "__main__":
         print("数据增强示例已生成")
     else:
         print("用法: python augmentation.py <图像路径>")
+    
+    # 添加测试伪造特定增强的代码
+    def test_forensic_specific_augmentations():
+        # 创建配置
+        config = create_default_augmentation_config()
+        
+        # 创建增强器
+        augmenter = ForensicAugmenter(config)
+        forensic_specific = ForensicSpecificAugmenter(config)
+        
+        # 测试图像
+        if len(sys.argv) > 1:
+            image_path = sys.argv[1]
+            img = Image.open(image_path).convert('RGB')
+            
+            # 创建随机掩码
+            mask = Image.new('L', img.size, 0)
+            draw = ImageDraw.Draw(mask)
+            center_x, center_y = img.size[0] // 2, img.size[1] // 2
+            radius = min(img.size) // 4
+            draw.ellipse((center_x - radius, center_y - radius, 
+                          center_x + radius, center_y + radius), fill=255)
+            
+            # 应用边界混合
+            img_blended, mask_blended = forensic_specific.boundary_blending(img, mask)
+            
+            # 应用频域操作
+            img_freq = forensic_specific.frequency_domain_manipulation(img)
+            
+            # 显示结果
+            plt.figure(figsize=(12, 8))
+            
+            plt.subplot(2, 2, 1)
+            plt.imshow(img)
+            plt.title("原始图像")
+            
+            plt.subplot(2, 2, 2)
+            plt.imshow(mask, cmap='gray')
+            plt.title("掩码")
+            
+            plt.subplot(2, 2, 3)
+            plt.imshow(img_blended)
+            plt.title("边界混合")
+            
+            plt.subplot(2, 2, 4)
+            plt.imshow(img_freq)
+            plt.title("频域操作")
+            
+            plt.tight_layout()
+            plt.savefig('forensic_specific_augmentations.png')
+            plt.close()
+            
+            print("伪造特定增强示例已保存")
+    
+    # 执行测试
+    if '-forensic' in sys.argv:
+        from PIL import ImageDraw
+        import matplotlib.pyplot as plt
+        test_forensic_specific_augmentations()

@@ -150,18 +150,19 @@ class EnhancedFADHead(nn.Module):
 
 # 专门的RGB+DCT双分支融合网络
 class ForensicDualBranchNet(nn.Module):
-    def __init__(self, config, num_classes=2, img_size=256, mode='Both'):
+    def __init__(self, config, num_classes=2, img_size=256, mode='Both', feature_channels=728):
         super(ForensicDualBranchNet, self).__init__()
         self.num_classes = num_classes
         self.mode = mode
         self.img_size = img_size
+        self.feature_channels = feature_channels  # 保存通道数参数
         
         # 使用EnhancedHRNet作为主要特征提取器
         self.backbone = EnhancedHRNet(config)
         
-        # 额外的掩码生成器，增强边界检测
+        # 额外的掩码生成器，增强边界检测 - 使用传入的feature_channels
         self.mask_generator = nn.Sequential(
-            nn.Conv2d(728, 256, kernel_size=3, padding=1),
+            nn.Conv2d(self.feature_channels, 256, kernel_size=3, padding=1),
             nn.BatchNorm2d(256),
             nn.ReLU(inplace=True),
             nn.Conv2d(256, 128, kernel_size=3, padding=1),
@@ -328,11 +329,12 @@ class DeepForensicsNet(nn.Module):
     """
     深度伪造检测网络 - 整合所有优化组件
     """
-    def __init__(self, config, num_classes=2, img_size=256, mode='Both'):
+    def __init__(self, config, num_classes=2, img_size=256, mode='Both', feature_channels=728):
         super(DeepForensicsNet, self).__init__()
         self.num_classes = num_classes
         self.mode = mode
         self.img_size = img_size
+        self.feature_channels = feature_channels  # 保存通道数参数
         
         # 根据模式选择不同的模型架构
         if mode == 'RGB':
@@ -350,7 +352,7 @@ class DeepForensicsNet(nn.Module):
                 nn.Linear(512, num_classes)
             )
         else:  # 'Both' - 默认使用双分支架构
-            self.model = ForensicDualBranchNet(config, num_classes, img_size)
+            self.model = ForensicDualBranchNet(config, num_classes, img_size, feature_channels=self.feature_channels)
             
     def forward(self, x, dct_input=None):
         if self.mode == 'RGB':
@@ -439,10 +441,18 @@ def create_model(config, model_type='enhanced', num_classes=2, img_size=256, mod
     Returns:
         实例化的模型
     """
-    if model_type == 'enhanced':
+    FEATURE_CHANNELS = 728  # 使用模型实际输出的通道数
+    if model_type.lower() == 'enhanced':
         return EnhancedF3Net(config, num_classes, img_size, img_size, mode)
-    elif model_type == 'forensics':
-        return DeepForensicsNet(config, num_classes, img_size, mode)
+    elif model_type.lower() == 'forensics':
+        # 修改这一行，确保兼容性
+        return DeepForensicsNet(
+            config=config,
+            num_classes=num_classes,
+            img_size=img_size,
+            mode=mode,
+            feature_channels=FEATURE_CHANNELS
+        )
     else:  # 默认使用 EnhancedF3Net
         return EnhancedF3Net(config, num_classes, img_size, img_size, mode)
 

@@ -1,0 +1,276 @@
+2025-03-14 16:41:56,331 [INFO] 检查文件 trainer.py: 存在
+2025-03-14 16:41:57,326 [INFO] 成功从 trainer.py 加载模块 trainer
+2025-03-14 16:41:57,339 [INFO] 检查文件 config.yaml: 存在
+2025-03-14 16:41:57,355 [INFO] === 开始调试损失计算 ===
+2025-03-14 16:41:57,355 [INFO] 检查损失函数初始化...
+2025-03-14 16:41:57,394 [INFO] 当前默认设备: cuda
+2025-03-14 16:41:57,394 [INFO] 
+CrossEntropyLoss:
+2025-03-14 16:41:57,394 [INFO]   - 损失函数没有明确的device属性
+2025-03-14 16:41:57,395 [INFO] 
+BCELoss:
+2025-03-14 16:41:57,395 [INFO]   - 损失函数没有明确的device属性
+2025-03-14 16:41:57,395 [INFO] 
+BCEWithLogitsLoss:
+2025-03-14 16:41:57,395 [INFO]   - 损失函数没有明确的device属性
+2025-03-14 16:41:57,395 [INFO] 
+创建简化版训练器用于测试...
+2025-03-14 16:41:57,396 [INFO] 训练器设备: cuda
+2025-03-14 16:41:57,396 [INFO] 
+生成测试数据...
+2025-03-14 16:41:57,898 [INFO] 
+测试单输出损失计算...
+2025-03-14 16:41:57,899 [INFO] === 检查compute_losses输入的设备 ===
+2025-03-14 16:41:57,899 [INFO] outputs:
+2025-03-14 16:41:57,900 [INFO]   - 设备: cuda:0
+2025-03-14 16:41:57,900 [INFO]   - 形状: torch.Size([8, 2])
+2025-03-14 16:41:57,900 [INFO]   - 类型: torch.float32
+2025-03-14 16:41:57,901 [INFO] labels:
+2025-03-14 16:41:57,902 [INFO]   - 设备: cuda:0
+2025-03-14 16:41:57,902 [INFO]   - 形状: torch.Size([8])
+2025-03-14 16:41:57,902 [INFO]   - 类型: torch.int64
+2025-03-14 16:41:57,902 [INFO] masks 是 None
+2025-03-14 16:41:57,902 [INFO] 识别为单输出张量格式
+2025-03-14 16:41:57,902 [INFO] 处理后的class_outputs:
+2025-03-14 16:41:57,903 [INFO]   - 设备: cuda:0
+2025-03-14 16:41:57,903 [INFO]   - 形状: torch.Size([8, 2])
+2025-03-14 16:41:57,903 [INFO]   - 类型: torch.float32
+2025-03-14 16:41:57,903 [INFO] 处理后的mask_preds 是 None
+2025-03-14 16:41:57,903 [INFO] 训练器主设备: cuda
+2025-03-14 16:41:57,903 [INFO] 将所有输入移至同一设备...
+2025-03-14 16:41:57,904 [INFO] 转移后的设备:
+2025-03-14 16:41:57,904 [INFO] class_outputs:
+2025-03-14 16:41:57,904 [INFO]   - 设备: cuda:0
+2025-03-14 16:41:57,904 [INFO]   - 形状: torch.Size([8, 2])
+2025-03-14 16:41:57,904 [INFO]   - 类型: torch.float32
+2025-03-14 16:41:57,904 [INFO] labels:
+2025-03-14 16:41:57,905 [INFO]   - 设备: cuda:0
+2025-03-14 16:41:57,905 [INFO]   - 形状: torch.Size([8])
+2025-03-14 16:41:57,905 [INFO]   - 类型: torch.int64
+2025-03-14 16:41:57,905 [INFO] 
+尝试计算分类损失...
+2025-03-14 16:41:57,905 [INFO] 分类损失函数: CrossEntropyLoss()
+2025-03-14 16:41:57,905 [INFO] class_outputs最终:
+2025-03-14 16:41:57,905 [INFO]   - 设备: cuda:0
+2025-03-14 16:41:57,906 [INFO]   - 形状: torch.Size([8, 2])
+2025-03-14 16:41:57,906 [INFO]   - 类型: torch.float32
+2025-03-14 16:41:57,906 [INFO] labels最终:
+2025-03-14 16:41:57,906 [INFO]   - 设备: cuda:0
+2025-03-14 16:41:57,906 [INFO]   - 形状: torch.Size([8])
+2025-03-14 16:41:57,907 [INFO]   - 类型: torch.int64
+2025-03-14 16:41:57,907 [INFO] class_outputs形状: torch.Size([8, 2])
+2025-03-14 16:41:57,907 [INFO] labels形状: torch.Size([8])
+2025-03-14 16:41:57,908 [INFO] 分类损失计算成功: 1.212110161781311
+2025-03-14 16:41:57,908 [INFO] cls_loss:
+2025-03-14 16:41:57,908 [INFO]   - 设备: cuda:0
+2025-03-14 16:41:57,908 [INFO]   - 形状: torch.Size([])
+2025-03-14 16:41:57,908 [INFO]   - 类型: torch.float32
+2025-03-14 16:41:57,909 [INFO] 
+计算总损失...
+2025-03-14 16:41:57,909 [INFO] total_loss:
+2025-03-14 16:41:57,909 [INFO]   - 设备: cuda:0
+2025-03-14 16:41:57,909 [INFO]   - 形状: torch.Size([])
+2025-03-14 16:41:57,909 [INFO]   - 类型: torch.float32
+2025-03-14 16:41:57,910 [INFO] 总损失计算成功: 1.212110161781311
+2025-03-14 16:41:57,910 [INFO] 单输出损失计算成功!
+2025-03-14 16:41:57,910 [INFO] 
+测试双输出损失计算...
+2025-03-14 16:41:57,910 [INFO] === 检查compute_losses输入的设备 ===
+2025-03-14 16:41:57,910 [INFO] outputs[0]:
+2025-03-14 16:41:57,911 [INFO]   - 设备: cuda:0
+2025-03-14 16:41:57,911 [INFO]   - 形状: torch.Size([8, 1, 64, 64])
+2025-03-14 16:41:57,911 [INFO]   - 类型: torch.float32
+2025-03-14 16:41:57,911 [INFO] outputs[1]:
+2025-03-14 16:41:57,911 [INFO]   - 设备: cuda:0
+2025-03-14 16:41:57,911 [INFO]   - 形状: torch.Size([8, 2])
+2025-03-14 16:41:57,912 [INFO]   - 类型: torch.float32
+2025-03-14 16:41:57,912 [INFO] labels:
+2025-03-14 16:41:57,912 [INFO]   - 设备: cuda:0
+2025-03-14 16:41:57,912 [INFO]   - 形状: torch.Size([8])
+2025-03-14 16:41:57,912 [INFO]   - 类型: torch.int64
+2025-03-14 16:41:57,912 [INFO] masks:
+2025-03-14 16:41:57,912 [INFO]   - 设备: cuda:0
+2025-03-14 16:41:57,912 [INFO]   - 形状: torch.Size([8, 1, 64, 64])
+2025-03-14 16:41:57,912 [INFO]   - 类型: torch.float32
+2025-03-14 16:41:57,913 [INFO] 识别为双输出格式: (mask_preds, class_outputs)
+2025-03-14 16:41:57,913 [INFO] 处理后的class_outputs:
+2025-03-14 16:41:57,913 [INFO]   - 设备: cuda:0
+2025-03-14 16:41:57,913 [INFO]   - 形状: torch.Size([8, 2])
+2025-03-14 16:41:57,913 [INFO]   - 类型: torch.float32
+2025-03-14 16:41:57,914 [INFO] 处理后的mask_preds:
+2025-03-14 16:41:57,914 [INFO]   - 设备: cuda:0
+2025-03-14 16:41:57,914 [INFO]   - 形状: torch.Size([8, 1, 64, 64])
+2025-03-14 16:41:57,914 [INFO]   - 类型: torch.float32
+2025-03-14 16:41:57,914 [INFO] 训练器主设备: cuda
+2025-03-14 16:41:57,914 [INFO] 将所有输入移至同一设备...
+2025-03-14 16:41:57,915 [INFO] 转移后的设备:
+2025-03-14 16:41:57,915 [INFO] class_outputs:
+2025-03-14 16:41:57,915 [INFO]   - 设备: cuda:0
+2025-03-14 16:41:57,915 [INFO]   - 形状: torch.Size([8, 2])
+2025-03-14 16:41:57,915 [INFO]   - 类型: torch.float32
+2025-03-14 16:41:57,916 [INFO] labels:
+2025-03-14 16:41:57,916 [INFO]   - 设备: cuda:0
+2025-03-14 16:41:57,916 [INFO]   - 形状: torch.Size([8])
+2025-03-14 16:41:57,916 [INFO]   - 类型: torch.int64
+2025-03-14 16:41:57,916 [INFO] masks:
+2025-03-14 16:41:57,917 [INFO]   - 设备: cuda:0
+2025-03-14 16:41:57,917 [INFO]   - 形状: torch.Size([8, 1, 64, 64])
+2025-03-14 16:41:57,917 [INFO]   - 类型: torch.float32
+2025-03-14 16:41:57,917 [INFO] mask_preds:
+2025-03-14 16:41:57,917 [INFO]   - 设备: cuda:0
+2025-03-14 16:41:57,917 [INFO]   - 形状: torch.Size([8, 1, 64, 64])
+2025-03-14 16:41:57,917 [INFO]   - 类型: torch.float32
+2025-03-14 16:41:57,918 [INFO] 
+尝试计算分类损失...
+2025-03-14 16:41:57,918 [INFO] 分类损失函数: CrossEntropyLoss()
+2025-03-14 16:41:57,918 [INFO] class_outputs最终:
+2025-03-14 16:41:57,918 [INFO]   - 设备: cuda:0
+2025-03-14 16:41:57,918 [INFO]   - 形状: torch.Size([8, 2])
+2025-03-14 16:41:57,919 [INFO]   - 类型: torch.float32
+2025-03-14 16:41:57,919 [INFO] labels最终:
+2025-03-14 16:41:57,919 [INFO]   - 设备: cuda:0
+2025-03-14 16:41:57,919 [INFO]   - 形状: torch.Size([8])
+2025-03-14 16:41:57,919 [INFO]   - 类型: torch.int64
+2025-03-14 16:41:57,920 [INFO] class_outputs形状: torch.Size([8, 2])
+2025-03-14 16:41:57,920 [INFO] labels形状: torch.Size([8])
+2025-03-14 16:41:57,920 [INFO] 分类损失计算成功: 1.212110161781311
+2025-03-14 16:41:57,920 [INFO] cls_loss:
+2025-03-14 16:41:57,920 [INFO]   - 设备: cuda:0
+2025-03-14 16:41:57,921 [INFO]   - 形状: torch.Size([])
+2025-03-14 16:41:57,921 [INFO]   - 类型: torch.float32
+2025-03-14 16:41:57,921 [INFO] 
+尝试计算掩码损失...
+2025-03-14 16:41:57,921 [INFO] mask_preds形状: torch.Size([8, 1, 64, 64])
+2025-03-14 16:41:57,921 [INFO] masks形状: torch.Size([8, 1, 64, 64])
+2025-03-14 16:41:57,921 [INFO] 掩码损失计算成功: 0.7277817130088806
+2025-03-14 16:41:57,921 [INFO] mask_loss:
+2025-03-14 16:41:57,921 [INFO]   - 设备: cuda:0
+2025-03-14 16:41:57,921 [INFO]   - 形状: torch.Size([])
+2025-03-14 16:41:57,921 [INFO]   - 类型: torch.float32
+2025-03-14 16:41:57,922 [INFO] 
+计算总损失...
+2025-03-14 16:41:57,922 [INFO] total_loss:
+2025-03-14 16:41:57,922 [INFO]   - 设备: cuda:0
+2025-03-14 16:41:57,922 [INFO]   - 形状: torch.Size([])
+2025-03-14 16:41:57,922 [INFO]   - 类型: torch.float32
+2025-03-14 16:41:57,923 [INFO] 总损失计算成功: 1.5760010480880737
+2025-03-14 16:41:57,923 [INFO] 双输出损失计算成功!
+2025-03-14 16:41:57,924 [INFO] 
+检查实际trainer中的compute_losses函数...
+2025-03-14 16:41:57,924 [INFO] 实际EnhancedTrainer.compute_losses函数代码:
+
+2025-03-14 16:41:57,926 [INFO]     def compute_losses(self, outputs, labels, masks=None):
+        """
+        计算多任务损失
+
+        Args:
+            outputs: 模型输出，可能是单一输出或包含多个元素的元组
+            labels: 真实标签
+            masks: 真实掩码（可选）
+
+        Returns:
+            总损失, 分类损失, 掩码损失, 频域损失
+        """
+        # 初始化损失值
+        mask_loss = None
+        freq_loss = None
+        contrastive_loss = None
+
+        # 处理不同的输出格式
+        if isinstance(outputs, tuple):
+            # 多任务输出
+            if len(outputs) == 2:  # 例如: (mask_preds, class_outputs)
+                mask_preds, class_outputs = outputs
+            elif len(outputs) >= 3:  # 例如: (mask_preds, class_outputs, features)
+                mask_preds, class_outputs, features = outputs[:3]
+            else:
+                mask_preds = None
+                class_outputs = outputs[0]
+        else:
+            # 单任务输出（只有分类）
+            mask_preds = None
+            class_outputs = outputs
+
+        # 确保张量在同一设备上
+        device = class_outputs.device
+        labels = labels.to(device)
+        if masks is not None:
+            masks = masks.to(device)
+
+        # 计算分类损失
+        try:
+            cls_loss = self.cls_loss_fn(class_outputs, labels)
+        except Exception as e:
+            print(f"计算分类损失错误: {e}")
+            cls_loss = torch.tensor(0.0, device=device)
+
+        # 如果有掩码预测和真实掩码，计算掩码损失
+        if mask_preds is not None and masks is not None and hasattr(self, 'mask_loss_fn'):
+            try:
+                # 确保掩码形状匹配
+                if mask_preds.shape != masks.shape:
+                    mask_preds = F.interpolate(mask_preds, size=masks.shape[2:], 
+                                             mode='bilinear', align_corners=False)
+
+                # 应用掩码损失函数
+                mask_loss = self.mask_loss_fn(mask_preds, masks)
+            except Exception as e:
+                print(f"计算掩码损失错误: {e}")
+                mask_loss = torch.tensor(0.0, device=device)
+        else:
+            mask_loss = torch.tensor(0.0, device=device)
+
+        # 计算频域损失（如果启用）
+        if hasattr(self, 'freq_loss_fn') and hasattr(self.model, 'get_frequency_features'):
+            try:
+                pred_freq, true_freq = self.model.get_frequency_features()
+                if pred_freq is not None and true_freq is not None:
+                    # 确保频域特征在同一设备上
+                    device = class_outputs.device  # 使用主设备作为参考
+                    pred_freq = pred_freq.to(device)
+                    true_freq = true_freq.to(device)
+                    freq_loss = self.freq_loss_fn(pred_freq, true_freq)
+                else:
+                    freq_loss = torch.tensor(0.0, device=device)
+            except Exception as e:
+                print(f"计算频域损失错误: {e}")
+                freq_loss = torch.tensor(0.0, device=device)
+        else:
+            freq_loss = torch.tensor(0.0, device=device)
+
+        # 计算对比损失（如果启用）
+        if hasattr(self, 'contrastive_loss_fn') and self.contrastive_loss_fn is not None and isinstance(outputs, tuple) and len(outputs) >= 3:
+            try:
+                features = outputs[2]
+                contrastive_loss = self.contrastive_loss_fn(features, labels)
+            except Exception as e:
+                print(f"计算对比损失错误: {e}")
+                contrastive_loss = torch.tensor(0.0, device=device)
+        else:
+            contrastive_loss = torch.tensor(0.0, device=device)
+
+        # 计算总损失
+        total_loss = self.cls_weight * cls_loss
+
+        if mask_loss is not None:
+            total_loss += self.mask_weight * mask_loss
+
+        if freq_loss is not None:
+            total_loss += self.freq_weight * freq_loss
+
+        if contrastive_loss is not None:
+            total_loss += self.contrastive_weight * contrastive_loss
+
+        return total_loss, cls_loss, mask_loss, freq_loss
+
+2025-03-14 16:41:57,929 [INFO] 
+分析可能的设备不一致问题:
+2025-03-14 16:41:57,930 [INFO] 1. 检查是否所有张量都明确移至相同设备
+2025-03-14 16:41:57,930 [INFO] 2. 检查是否处理了所有可能的异常情况
+2025-03-14 16:41:57,930 [INFO] 3. 检查损失函数的实例化和使用方式
+2025-03-14 16:41:57,930 [INFO] 
+实际分析EnhancedTrainer实例:
+2025-03-14 16:41:57,930 [INFO] 尝试创建EnhancedTrainer实例...
+2025-03-14 16:41:57,931 [INFO] 使用create_trainer函数创建训练器...
+2025-03-14 16:41:57,932 [ERROR] 创建EnhancedTrainer实例失败: 'MODEL'
+2025-03-14 16:41:57,934 [INFO] === 设备不一致问题调试完成 ===

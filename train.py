@@ -9,12 +9,13 @@ from pathlib import Path
 import time
 import logging
 
-# 导入自定义模块
-from utils import setup_logger, set_seed, save_checkpoint, AverageMeter
-from trainer import EnhancedTrainer, Trainer
+# 导入自定义模块 - 更新导入以使用修改后的功能
+from utils import setup_logger, set_seed, save_checkpoint, AverageMeter, create_default_config, evaluate
+from trainer import create_trainer
 from core.dataset import create_forensic_data_loaders
 from core.evaluation import ModelEvaluator
 from core.visualization import ForensicVisualizer
+from models import create_model
 
 
 def main(config):
@@ -23,10 +24,19 @@ def main(config):
     seed = config.SEED if hasattr(config, 'SEED') else 42
     set_seed(seed)
     
-    # 创建实验目录
+    # 创建实验目录 - 使用配置的模型名称和时间戳
     timestamp = time.strftime('%Y%m%d_%H%M%S', time.localtime())
-    experiment_name = f"{config.MODEL.NAME}_{timestamp}" if hasattr(config, 'MODEL') else f"experiment_{timestamp}"
-    output_dir = Path(config.OUTPUT_DIR)
+    
+    # 从配置中获取模型名称
+    if hasattr(config, 'MODEL_CONFIG') and hasattr(config.MODEL_CONFIG, 'TYPE'):
+        model_type = config.MODEL_CONFIG.TYPE
+    elif hasattr(config, 'MODEL') and hasattr(config.MODEL, 'NAME'):
+        model_type = config.MODEL.NAME
+    else:
+        model_type = "forensics"
+        
+    experiment_name = f"{model_type}_{timestamp}"
+    output_dir = Path(config.OUTPUT_DIR if hasattr(config, 'OUTPUT_DIR') else './output')
     experiment_dir = output_dir / experiment_name
     experiment_dir.mkdir(parents=True, exist_ok=True)
     
@@ -39,175 +49,224 @@ def main(config):
     with open(experiment_dir / 'config.yaml', 'w') as f:
         yaml.dump(dict(config), f)
     
-    # 创建数据加载器
+    # 创建数据加载器 - 使用core.dataset中的函数
     logger.info("初始化数据集...")
     train_loader, val_loader, test_loader = create_forensic_data_loaders(config)
     
-    # 设置设备和初始化模型
+    # 设置设备和初始化参数
     gpu_ids = list(range(len(os.environ['CUDA_VISIBLE_DEVICES'].split(','))))
-    mode = config.MODEL.MODE if hasattr(config, 'MODEL') and hasattr(config.MODEL, 'MODE') else 'Both'
-    pretrained_path = config.MODEL.PRETRAINED if hasattr(config, 'MODEL') and hasattr(config.MODEL, 'PRETRAINED') else './pretrained/xception-b5690688.pth'
     
-    # 初始化训练器
+    # 从配置中获取模型参数
+    model_config = config.MODEL_CONFIG if hasattr(config, 'MODEL_CONFIG') else None
+    model_type = model_config.TYPE if model_config and hasattr(model_config, 'TYPE') else 'forensics'
+    mode = model_config.MODE if model_config and hasattr(model_config, 'MODE') else 'Both'
+    
+    # 获取预训练路径
+    pretrained_path = None
+    if model_config and hasattr(model_config, 'PRETRAINED'):
+        if isinstance(model_config.PRETRAINED, dict):
+            # 如果有多个预训练模型可选
+            if model_type.lower() == 'enhanced' or model_type.lower() == 'f3net':
+                pretrained_path = model_config.PRETRAINED.get('XCEPTION', None)
+            elif model_type.lower() == 'forensics':
+                pretrained_path = model_config.PRETRAINED.get('HRNET', None)
+        else:
+            pretrained_path = model_config.PRETRAINED
+    
+    # 如果没有指定预训练路径，尝试使用默认路径
+    if not pretrained_path and hasattr(config, 'MODEL') and hasattr(config.MODEL, 'PRETRAINED'):
+        pretrained_path = config.MODEL.PRETRAINED
+    
+    # 初始化训练器 - 使用factory方法创建
     try:
         logger.info("初始化训练器...")
-        if hasattr(config, 'USE_ENHANCED_TRAINER') and config.USE_ENHANCED_TRAINER:
-            model = EnhancedTrainer(config, gpu_ids, mode=mode, pretrained_path=pretrained_path)
-        else:
-            model = Trainer(config, gpu_ids, mode=mode, pretrained_path=pretrained_path)
-            
+        trainer = create_trainer(
+            config=config,
+            gpu_ids=gpu_ids,
+            model_type=model_type,
+            mode=mode,
+            pretrained_path=pretrained_path
+        )
+        
+        # 打印模型信息
+        trainer.print_model_summary()
+        
         # 恢复训练检查点（如果存在）
         if hasattr(config, 'TRAINING') and hasattr(config.TRAINING, 'RESUME') and config.TRAINING.RESUME:
-            resume_path = config.TRAINING.RESUME_PATH
-            if os.path.exists(resume_path):
-                logger.info(f"从检查点恢复训练: {resume_path}")
-                model.load(resume_path)
+            resume_path = None
+            if hasattr(config.TRAINING, 'RESUME_PATH'):
+                resume_path = config.TRAINING.RESUME_PATH
+                if os.path.exists(resume_path):
+                    logger.info(f"从检查点恢复训练: {resume_path}")
+                    trainer.load(resume_path)
+                else:
+                    logger.warning(f"检查点文件不存在: {resume_path}")
+            else:
+                logger.warning("配置中启用了RESUME但未指定RESUME_PATH，跳过恢复训练")
     except Exception as e:
         logger.error(f"初始化模型失败: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         raise e
     
-    # 设置早停和评估器
-    early_stopping_enabled = config.TRAINING.EARLY_STOPPING.ENABLED if hasattr(config, 'TRAINING') and hasattr(config.TRAINING, 'EARLY_STOPPING') else False
-    patience = config.TRAINING.EARLY_STOPPING.PATIENCE if early_stopping_enabled else 10
-    early_stop_counter = 0
-    best_val_acc = 0.0
-    best_epoch = 0
+    # 更新输出目录
+    trainer.results_dir = experiment_dir
     
-    # 创建可视化器和评估器
-    visualizer = ForensicVisualizer(save_dir=experiment_dir)
-    evaluator = ModelEvaluator(save_dir=experiment_dir / "evaluation")
-    
-    # 训练历史记录
-    history = {
-        'train_loss': [], 'val_loss': [], 'val_acc': [],
-        'train_cls_loss': [], 'train_mask_loss': [], 'train_freq_loss': [],
-        'lr': []
-    }
-    
-    # 开始训练
+    # 开始训练 - 使用trainer的内部训练循环
     logger.info("开始训练...")
     try:
-        for epoch in range(config.EPOCHS):
-            # 训练阶段
-            model.model.train()
-            train_metrics = model.train_epoch(train_loader, epoch)
-            
-            # 验证阶段
-            model.model.eval()
-            device = next(model.model.parameters()).device
-            val_metrics = evaluator.evaluate_model(model.model, val_loader, device)
-            val_acc = val_metrics['accuracy']
-            
-            # 更新学习率
-            current_lr = model.optimizer.param_groups[0]['lr']
-            if hasattr(model, 'lr_scheduler'):
-                model.lr_scheduler.step()
-            
-            # 更新历史记录
-            history['train_loss'].append(train_metrics.get('total_loss', 0))
-            history['train_cls_loss'].append(train_metrics.get('cls_loss', 0))
-            history['train_mask_loss'].append(train_metrics.get('mask_loss', 0))
-            history['train_freq_loss'].append(train_metrics.get('freq_loss', 0))
-            history['val_acc'].append(val_acc)
-            history['val_loss'].append(train_metrics.get('total_loss', 0))  # 用训练损失代替
-            history['lr'].append(current_lr)
-            
-            # 记录训练信息
-            logger.info(f'Epoch {epoch+1}/{config.EPOCHS} - '
-                       f'Train Loss: {train_metrics.get("total_loss", 0):.4f}, '
-                       f'Val Acc: {val_acc:.4f}, '
-                       f'LR: {current_lr:.6f}')
-            
-            # 检查最佳性能
-            if val_acc > best_val_acc:
-                best_val_acc = val_acc
-                best_epoch = epoch
-                # 保存最佳模型
-                best_model_path = experiment_dir / "best_model.pth"
-                model.save(str(best_model_path))
-                logger.info(f"保存最佳模型 (acc={val_acc:.4f}) 到 {best_model_path}")
-                early_stop_counter = 0
-            else:
-                early_stop_counter += 1
-                
-            # 保存检查点
-            if epoch % config.SAVE_FREQ == 0 or epoch == config.EPOCHS - 1:
-                checkpoint_path = experiment_dir / f"checkpoint_epoch_{epoch+1}.pth"
-                model.save(str(checkpoint_path))
-                
-            # 可视化训练曲线
-            if (epoch + 1) % 5 == 0 or epoch == config.EPOCHS - 1:
-                visualizer.plot_training_curves(history)
-                
-            # 检查早停条件
-            if early_stopping_enabled and early_stop_counter >= patience:
-                logger.info(f"早停触发! 最佳验证准确率: {best_val_acc:.4f} at epoch {best_epoch+1}")
-                break
+        # 使用trainer的train方法处理完整训练过程
+        epochs = config.EPOCHES if hasattr(config, 'EPOCHES') else config.EPOCHS if hasattr(config, 'EPOCHS') else 100
+        history = trainer.train(
+            epochs=epochs, 
+            train_loader=train_loader, 
+            val_loader=val_loader,
+            test_loader=test_loader
+        )
         
-        # 训练完成后的评估
-        logger.info("训练完成。在测试集上评估最佳模型...")
-        
-        # 加载最佳模型
-        best_model_path = experiment_dir / "best_model.pth"
-        model.load(str(best_model_path))
-        
-        # 在测试集上评估
-        model.model.eval()
-        device = next(model.model.parameters()).device
-        test_metrics = evaluator.evaluate_model(model.model, test_loader, device)
-        test_acc = test_metrics['accuracy']
-        
-        # 保存评估结果
-        evaluator.save_evaluation_results(test_metrics)
-        
-        # 创建评估报告
-        visualizer.create_evaluation_report(test_metrics)
+        # 训练完成后的额外处理
+        logger.info(f"训练完成。最佳验证准确率: {trainer.best_val_acc:.4f}")
         
         # 保存最终结果摘要
         with open(experiment_dir / "results_summary.txt", "w") as f:
             f.write(f"实验名称: {experiment_name}\n")
-            f.write(f"最佳验证准确率: {best_val_acc:.4f} (epoch {best_epoch+1})\n")
-            f.write(f"最终测试准确率: {test_acc:.4f}\n")
-            f.write(f"AUC分数: {test_metrics['auc']:.4f}\n")
-            if 'mask_metrics' in test_metrics:
-                f.write(f"掩码IoU: {test_metrics['mask_metrics']['mean_iou']:.4f}\n")
+            f.write(f"模型类型: {model_type}\n")
+            f.write(f"模型模式: {mode}\n")
+            f.write(f"最佳验证准确率: {trainer.best_val_acc:.4f}\n")
+            f.write(f"最佳验证损失: {trainer.best_val_loss:.4f}\n")
             
-        logger.info(f"最终测试准确率: {test_acc:.4f} (最佳模型来自epoch {best_epoch+1})")
-        logger.info(f"实验结果已保存至: {experiment_dir}")
-        
         return {
             'experiment_dir': experiment_dir,
-            'best_val_acc': best_val_acc,
-            'best_epoch': best_epoch,
-            'test_acc': test_acc
+            'best_val_acc': trainer.best_val_acc,
+            'best_val_loss': trainer.best_val_loss
         }
         
     except Exception as e:
-        logger.error(f"训练过程中出错: {e}", exc_info=True)
+        logger.error(f"训练过程中出错: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         raise e
 
 
-if __name__ == '__main__':
-    # 命令行参数解析
+def parse_args():
+    """解析命令行参数并加载配置"""
     parser = argparse.ArgumentParser(description='训练伪造检测模型')
     parser.add_argument('--config', type=str, default='./config.yaml', help='配置文件路径')
-    parser.add_argument('--seed', type=int, help='随机种子')
+    parser.add_argument('--seed', type=int, default=42, help='随机种子')
+    parser.add_argument('--epochs', type=int, help='训练轮数')
+    parser.add_argument('--batch_size', type=int, help='批量大小')
+    parser.add_argument('--lr', type=float, help='学习率')
+    parser.add_argument('--output_dir', type=str, help='输出目录')
+    parser.add_argument('--model_type', type=str, choices=['enhanced', 'f3net', 'forensics'], help='模型类型')
+    parser.add_argument('--mode', type=str, choices=['RGB', 'FAD', 'Both'], help='模型模式')
+    parser.add_argument('--resume', type=str, help='恢复训练的检查点路径')
+    parser.add_argument('--mixed_precision', action='store_true', help='使用混合精度训练')
+    parser.add_argument('--eval_only', action='store_true', help='仅评估模型')
     args = parser.parse_args()
     
-    # 加载配置
-    with open(args.config, 'r') as stream:
-        config = yaml.safe_load(stream)
-    config = easydict.EasyDict(config)
-    
-    # 添加命令行参数
+    # 修改这里，明确指定UTF-8编码
+    try:
+        with open(args.config, 'r', encoding='utf-8') as stream:
+            config = yaml.safe_load(stream)
+        config = easydict.EasyDict(config)
+    except Exception as e:
+        print(f"无法加载配置文件 {args.config}: {e}")
+        # 如果配置加载失败，使用默认配置
+        config = create_default_config()
+        
+        
+    # 使用命令行参数更新配置
     if args.seed:
         config.SEED = args.seed
+    if args.epochs:
+        config.EPOCHS = args.epochs
+    if args.batch_size:
+        config.BATCH_SIZE = args.batch_size
+    if args.output_dir:
+        config.OUTPUT_DIR = args.output_dir
+    if args.model_type:
+        if not hasattr(config, 'MODEL_CONFIG'):
+            config.MODEL_CONFIG = easydict.EasyDict()
+        config.MODEL_CONFIG.TYPE = args.model_type
+    if args.mode:
+        if not hasattr(config, 'MODEL_CONFIG'):
+            config.MODEL_CONFIG = easydict.EasyDict()
+        config.MODEL_CONFIG.MODE = args.mode
+    if args.lr:
+        if not hasattr(config, 'OPTIMIZER'):
+            config.OPTIMIZER = easydict.EasyDict()
+        config.OPTIMIZER.LR = args.lr
+    if args.resume:
+        if not hasattr(config, 'TRAINING'):
+            config.TRAINING = easydict.EasyDict()
+        config.TRAINING.RESUME = True
+        config.TRAINING.RESUME_PATH = args.resume
+    if args.mixed_precision:
+        if not hasattr(config, 'TRAINING'):
+            config.TRAINING = easydict.EasyDict()
+        config.TRAINING.MIXED_PRECISION = True
         
-    # 添加缺失的配置字段
+    # 确保基本配置字段存在
     if not hasattr(config, 'EPOCHS'):
-        config.EPOCHS = 30
+        config.EPOCHS = 100
     if not hasattr(config, 'SAVE_FREQ'):
         config.SAVE_FREQ = 5
     
-    # 开始训练
-    main(config)
+    return args, config
+
+
+def evaluate_model(config, model_path):
+    """评估已训练的模型"""
+    # 加载配置和模型路径
+    logger = logging.getLogger("eval_logger")
+    logger.info(f"评估模型: {model_path}")
+    
+    # 设置GPU
+    gpu_ids = list(range(len(os.environ['CUDA_VISIBLE_DEVICES'].split(','))))
+    
+    # 创建数据加载器 - 仅使用测试数据集
+    _, _, test_loader = create_forensic_data_loaders(config)
+    
+    # 从模型路径创建模型
+    from utils import create_model_from_checkpoint
+    device = f'cuda:{gpu_ids[0]}' if gpu_ids else 'cpu'
+    model = create_model_from_checkpoint(config, model_path, device=device)
+    
+    # 评估模型
+    logger.info("开始评估...")
+    metrics = evaluate(model, config, test_loader=test_loader, 
+                      evaluate_boundary=True, evaluate_freq=True)
+    
+    # 打印关键指标
+    logger.info(f"评估结果:")
+    logger.info(f"准确率: {metrics.get('accuracy', 0):.4f}")
+    logger.info(f"AUC: {metrics.get('auc', 0):.4f}")
+    if 'mask_metrics' in metrics:
+        logger.info(f"掩码IoU: {metrics['mask_metrics'].get('mean_iou', 0):.4f}")
+    if 'boundary_metrics' in metrics:
+        logger.info(f"边界F1: {metrics['boundary_metrics'].get('boundary_f1', 0):.4f}")
+    
+    # 创建可视化
+    output_dir = Path(config.OUTPUT_DIR) / "evaluation" / Path(model_path).stem
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    visualizer = ForensicVisualizer(save_dir=output_dir)
+    visualizer.create_evaluation_report(metrics, save_dir=output_dir)
+    
+    logger.info(f"评估完成，结果已保存至: {output_dir}")
+    return metrics
+
+
+if __name__ == '__main__':
+    # 解析命令行参数
+    args, config = parse_args()
+    
+    # 仅评估模式
+    if (args.eval_only):
+        if not args.resume:
+            print("错误: 请指定要评估的模型路径 (--resume)")
+            exit(1)
+        evaluate_model(config, args.resume)
+    else:
+        # 训练模式
+        main(config)

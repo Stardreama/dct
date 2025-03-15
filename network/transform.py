@@ -135,56 +135,81 @@ class LocalColorDistortion:
     def __call__(self, img, mask=None):
         if random.random() > self.p:
             return img
-            
-        # 没有掩码时,随机应用到整个图像的某块区域
-        img_np = np.array(img).astype(np.float32)
-        
-        if mask is None:
-            # 随机选择一个区域
-            h, w = img_np.shape[:2]
-            y1 = random.randint(0, h//2)
-            x1 = random.randint(0, w//2)
-            y2 = random.randint(y1+h//4, h)
-            x2 = random.randint(x1+w//4, w)
-            
-            # 创建一个掩码
-            mask_np = np.zeros((h, w), dtype=np.float32)
-            mask_np[y1:y2, x1:x2] = 1
-            
-            # 应用羽化效果到掩码边缘
-            mask_np = cv2.GaussianBlur(mask_np, (21, 21), 11)
-        else:
-            mask_np = np.array(mask).astype(np.float32)
-            if mask_np.max() > 1:
-                mask_np = mask_np / 255.0
-        
-        # 根据颜色通道随机扭曲
-        channels = []
-        for c in range(min(3, img_np.shape[2])):
-            # 为每个通道选择独立的扭曲因子
-            factor = random.uniform(self.scale_range[0], self.scale_range[1])
-            
-            # 应用到区域
-            channel = img_np[:, :, c]
-            distorted = channel * factor
-            distorted = np.clip(distorted, 0, 255)
-            
-            # 融合回原图
-            if len(mask_np.shape) == 2:
-                mask_3d = np.expand_dims(mask_np, axis=2)
-            else:
-                mask_3d = mask_np
+
+        try:
+            # 转换为numpy数组
+            img_np = np.array(img).astype(np.float32)
+
+            # 检查图像形状
+            if len(img_np.shape) != 3 or img_np.shape[2] != 3:
+                print(f"警告: 颜色变换收到形状异常的图像 {img_np.shape}，返回原图")
+                return img
+
+            # 确保我们有正确的3维数组 [H, W, C]
+            if img_np.shape[-1] != 3 and len(img_np.shape) > 3:
+                img_np = img_np.squeeze()  # 移除多余的维度
+                if img_np.shape[-1] != 3:
+                    print(f"警告: 颜色变换结果形状异常 {img_np.shape}，返回原图")
+                    return img
+
+            if mask is None:
+                # 随机选择一个区域
+                h, w = img_np.shape[:2]
+                y1 = random.randint(0, h//2)
+                x1 = random.randint(0, w//2)
+                y2 = random.randint(y1+h//4, h)
+                x2 = random.randint(x1+w//4, w)
                 
-            blended = channel * (1 - mask_3d) + distorted * mask_3d
-            channels.append(blended)
+                # 创建一个掩码
+                mask_np = np.zeros((h, w), dtype=np.float32)
+                mask_np[y1:y2, x1:x2] = 1
+                
+                # 应用羽化效果到掩码边缘
+                mask_np = cv2.GaussianBlur(mask_np, (21, 21), 11)
+            else:
+                mask_np = np.array(mask).astype(np.float32)
+                if mask_np.max() > 1:
+                    mask_np = mask_np / 255.0
             
-        # 合并通道
-        if len(channels) == 3:  # RGB
-            result = np.stack(channels, axis=2)
-        elif len(channels) == 1:  # 灰度
-            result = channels[0]
-        
-        return Image.fromarray(result.astype(np.uint8))
+            # 根据颜色通道随机扭曲
+            channels = []
+            for c in range(min(3, img_np.shape[2])):
+                # 为每个通道选择独立的扭曲因子
+                factor = random.uniform(self.scale_range[0], self.scale_range[1])
+                
+                # 应用到区域
+                channel = img_np[:, :, c]
+                distorted = channel * factor
+                distorted = np.clip(distorted, 0, 255)
+                
+                # 融合回原图
+                if len(mask_np.shape) == 2:
+                    mask_3d = np.expand_dims(mask_np, axis=2)
+                else:
+                    mask_3d = mask_np
+                    
+                blended = channel * (1 - mask_3d) + distorted * mask_3d
+                channels.append(blended)
+                
+
+            # 合并通道前检查
+            if len(channels) == 3:  # RGB
+                result = np.stack(channels, axis=2)
+            elif len(channels) == 1:  # 灰度
+                result = channels[0]
+
+            # 确保结果形状正确
+            if result.ndim > 3:
+                result = result.squeeze()  # 移除大小为1的维度
+
+            if result.ndim != 3 or result.shape[2] != 3:
+                print(f"警告: 颜色变换结果形状异常 {result.shape}，返回原图")
+                return img
+
+            return Image.fromarray(result.astype(np.uint8))
+        except Exception as e:
+            print(f"颜色变换出错: {e}")
+            return img  # 发生错误时返回原始图像
 
 
 class FrequencyDomainTransform:
@@ -234,30 +259,62 @@ class FrequencyDomainTransform:
         
         return Image.fromarray(result.astype(np.uint8))
         
-    def _apply_dct_modifier(self, img):
+    def _apply_dct_numpy(self, img):
         """应用DCT变换,修改频域系数,再逆变换"""
-        # 可以选择偶尔使用高级DCT转换器
-        if random.random() > 0.3 and hasattr(self, '_dct_extractor'):
-            # 使用专业DCT提取器的知识来增强图像
-            tensor_img = TF.to_tensor(img).unsqueeze(0)
-            with torch.no_grad():
-                # 先提取，然后修改
-                dct_features = self._dct_extractor(tensor_img)
-                
-                # 对DCT特征简单修改
+        try:
+            # 转换为numpy数组
+            img_np = np.array(img).astype(np.float32)
+
+            # 检查图像形状
+            if len(img_np.shape) != 3 or img_np.shape[2] != 3:
+                print(f"警告: DCT变换收到形状异常的图像 {img_np.shape}，跳过处理")
+                return img
+
+            result = np.zeros_like(img_np)
+
+            # 对每个通道单独处理
+            for c in range(3):
+                channel = img_np[:, :, c]
+
+                # 应用DCT变换
+                dct = cv2.dct(channel)
+
+                # 随机修改不同频段的系数(突出或抑制)
+                # 低频: 对应伪造区域的整体颜色/亮度
+                # 高频: 对应伪造区域的细节/噪声
+
+                # 随机选择是突出高频还是低频
                 if random.random() > 0.5:
-                    # 增强高频
-                    dct_features[:, 32:] *= random.uniform(1.1, 1.3)
+                    # 增强高频(乘以放大因子)
+                    h, w = dct.shape
+                    high_freq_mask = np.ones((h, w), dtype=np.float32)
+                    high_freq_mask[0:h//4, 0:w//4] = 0.5  # 低频区域降低影响
+                    dct = dct * high_freq_mask * random.uniform(1.1, 1.5)
                 else:
-                    # 增强低频
-                    dct_features[:, :16] *= random.uniform(1.05, 1.2)
-                    
-                # 这需要DCT提取器有反向转换功能
-                # 当前版本不支持，所以回退到原始方法
-                return self._apply_dct_numpy(img)
-        else:
-            # 使用numpy版本
-            return self._apply_dct_numpy(img)
+                    # 增强低频(更微妙的变化)
+                    h, w = dct.shape
+                    low_freq_mask = np.ones((h, w), dtype=np.float32) * 0.9
+                    low_freq_mask[0:h//4, 0:w//4] = random.uniform(1.1, 1.3)  # 低频区域微增强
+                    dct = dct * low_freq_mask
+
+                # 逆DCT变换
+                idct = cv2.idct(dct)
+
+                # 确保值在有效范围
+                idct = np.clip(idct, 0, 255)
+
+                result[:, :, c] = idct
+
+            # 确保结果是正确的形状和类型
+            if result.shape != img_np.shape:
+                print(f"警告: DCT结果形状 {result.shape} 与输入 {img_np.shape} 不匹配，返回原图")
+                return img
+
+            return Image.fromarray(result.astype(np.uint8))
+        except Exception as e:
+            print(f"DCT numpy处理出错: {e}")
+            # 发生错误时返回原始图像
+            return img
     
     def __call__(self, img):
         if random.random() > self.p:

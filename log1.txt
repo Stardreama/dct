@@ -1,0 +1,235 @@
+2025-03-14 17:23:15,600 [INFO] ==== 测试配置加载 ====
+2025-03-14 17:23:15,614 [INFO] 配置加载成功，包含 25 个顶级键
+2025-03-14 17:23:15,614 [INFO] 所有必要配置项均已存在
+2025-03-14 17:23:15,614 [INFO] ==== 测试数据集创建 ====
+2025-03-14 17:23:15,881 [INFO] 创建数据加载器...
+2025-03-14 17:23:16,207 [INFO] 数据加载器创建成功
+2025-03-14 17:23:16,207 [INFO] 训练集大小: 68868
+2025-03-14 17:23:16,207 [INFO] 验证集大小: 13432
+2025-03-14 17:23:16,207 [INFO] 测试集大小: 13436
+2025-03-14 17:23:18,116 [INFO] 批次类型: <class 'list'>, 批次长度: 4
+2025-03-14 17:23:18,117 [INFO] 图像形状: torch.Size([8, 3, 256, 256])
+2025-03-14 17:23:18,117 [INFO] 掩码形状: torch.Size([8, 63, 256, 256])
+2025-03-14 17:23:18,117 [INFO] 标签形状: torch.Size([8, 1, 256, 256])
+2025-03-14 17:23:18,117 [INFO] DCT特征形状: torch.Size([8, 63, 256, 256])
+2025-03-14 17:23:18,117 [INFO] ==== 测试模型创建 ====
+2025-03-14 17:23:18,137 [INFO] 创建模型，类型: forensics, 模式: Both
+2025-03-14 17:23:18,269 [INFO] => init weights from normal distribution
+2025-03-14 17:23:18,500 [INFO] => init weights from normal distribution
+2025-03-14 17:23:18,705 [INFO] 模型创建成功，类型: DeepForensicsNet
+2025-03-14 17:23:18,709 [INFO] 模型参数数量: 103,716,111
+2025-03-14 17:23:18,709 [INFO] 将模型转移到设备: cuda
+2025-03-14 17:23:18,925 [ERROR] 模型转移到设备失败，参数依然在 cuda:0
+2025-03-14 17:23:18,929 [INFO] ==== 测试训练器创建 ====
+2025-03-14 17:23:19,900 [INFO] 创建训练器，使用GPU IDs: [0]
+2025-03-14 17:23:20,075 [INFO] => init weights from normal distribution
+2025-03-14 17:23:20,303 [INFO] => init weights from normal distribution
+2025-03-14 17:23:21,031 [INFO] 训练器创建成功，类型: EnhancedTrainer
+2025-03-14 17:23:21,032 [INFO] 组件 model: \u2713
+2025-03-14 17:23:21,032 [INFO] 组件 optimizer: \u2713
+2025-03-14 17:23:21,032 [INFO] 组件 scheduler: \u2713
+2025-03-14 17:23:21,032 [INFO] 组件 cls_loss_fn: \u2713
+2025-03-14 17:23:21,032 [INFO] 组件 mask_loss_fn: \u2713
+2025-03-14 17:23:21,032 [INFO] 组件 freq_loss_fn: \u2713
+2025-03-14 17:23:21,032 [INFO] 测试compute_losses方法...
+2025-03-14 17:23:21,296 [INFO] 单输出compute_losses成功，返回 4 个值
+2025-03-14 17:23:21,298 [INFO] 多输出compute_losses成功，返回 4 个值
+2025-03-14 17:23:21,298 [INFO] ==== 测试前向传播和反向传播 ====
+2025-03-14 17:23:21,832 [INFO] 输入形状: torch.Size([8, 3, 256, 256])
+2025-03-14 17:23:21,832 [INFO] DCT特征形状: torch.Size([8, 63, 256, 256])
+2025-03-14 17:23:21,832 [INFO] 掩码形状: torch.Size([8, 1, 256, 256])
+2025-03-14 17:23:21,832 [INFO] 标签形状: torch.Size([8])
+2025-03-14 17:23:21,832 [INFO] 执行前向传播...
+2025-03-14 17:23:35,719 [INFO] 模型输出是一个元组，包含 2 个元素
+2025-03-14 17:23:35,720 [INFO] 输出[0] 形状: torch.Size([8, 1, 256, 256])
+2025-03-14 17:23:35,720 [INFO] 输出[1] 形状: torch.Size([8, 2])
+2025-03-14 17:23:35,720 [INFO] 计算损失...
+2025-03-14 17:23:37,536 [INFO] 总损失: 0.4840
+2025-03-14 17:23:37,536 [INFO] 分类损失: 0.0000
+2025-03-14 17:23:37,536 [INFO] 掩码损失: 0.9679
+2025-03-14 17:23:37,537 [INFO] 频域损失: 0.0000
+2025-03-14 17:23:37,537 [INFO] 执行反向传播...
+2025-03-14 17:23:46,852 [INFO] 梯度计算成功
+2025-03-14 17:23:48,046 [INFO] 前向传播和反向传播测试成功
+2025-03-14 17:23:48,048 [INFO] ==== 测试训练epoch ====
+2025-03-14 17:23:48,048 [INFO] 创建少量样本的测试加载器...
+2025-03-14 17:23:48,048 [ERROR] 训练epoch测试失败: sampler option is mutually exclusive with shuffle
+Traceback (most recent call last):
+  File ".\test_train.py", line 456, in test_training_epoch
+    limited_loader = torch.utils.data.DataLoader(
+  File "D:\environment\anaconda\envs\DCT_RGB_HRNet_new\lib\site-packages\torch\utils\data\dataloader.py", line 328, in __init__
+    raise ValueError('sampler option is mutually exclusive with '
+ValueError: sampler option is mutually exclusive with shuffle
+2025-03-14 17:23:48,049 [INFO] 所有测试完成
+
+数据集 'train' 统计:
+- 总样本数: 68868
+- 真实图像: 22993 (33.4%)
+- 伪造图像: 45875 (66.6%)
+- 伪造类型分布:
+  * faceswap: 11490 样本
+  * face2face: 11475 样本
+  * neuraltextures: 11460 样本
+  * deepfakes: 11450 样本
+
+DCT提取器初始化成功: train
+
+数据集 'val' 统计:
+- 总样本数: 13432
+- 真实图像: 4477 (33.3%)
+- 伪造图像: 8955 (66.7%)
+- 伪造类型分布:
+  * face2face: 2240 样本
+  * faceswap: 2240 样本
+  * neuraltextures: 2240 样本
+  * deepfakes: 2235 样本
+
+DCT提取器初始化成功: val
+
+数据集 'test' 统计:
+- 总样本数: 13436
+- 真实图像: 4479 (33.3%)
+- 伪造图像: 8957 (66.7%)
+- 伪造类型分布:
+  * face2face: 2240 样本
+  * deepfakes: 2239 样本
+  * neuraltextures: 2239 样本
+  * faceswap: 2239 样本
+
+DCT提取器初始化成功: test
+DCT特征提取失败: 
+警告: 颜色变换结果形状异常 (256, 256, 3, 256)，返回原图
+DCT特征提取失败: 
+警告: 颜色变换结果形状异常 (251, 251, 3, 251)，返回原图
+DCT特征提取失败: 
+DCT特征提取失败: 
+警告: 颜色变换结果形状异常 (256, 256, 3, 256)，返回原图
+DCT特征提取失败: 
+DCT特征提取失败: 
+DCT特征提取失败: 
+DCT特征提取失败: 
+检测到HRNet输出通道数: 928
+掩码头输入通道数: 928
+检测到HRNet输出通道数: 928
+掩码头输入通道数: 928
+模型设备检查: cuda:0
+使用掩码损失类型: dice_bce
+使用DiceBCELoss作为掩码损失
+计算分类损失错误: Expected all tensors to be on the same device, but found at least two devices, cuda:0 and cpu! (when checking argument for argument weight in method wrapper_CUDA_nll_loss_forward)
+计算分类损失错误: Expected all tensors to be on the same device, but found at least two devices, cuda:0 and cpu! (when checking argument for argument weight in method wrapper_CUDA_nll_loss_forward)
+DCT特征提取失败: 
+警告: 颜色变换结果形状异常 (256, 256, 3, 256)，返回原图
+DCT特征提取失败: 
+DCT特征提取失败: 
+警告: 颜色变换结果形状异常 (227, 227, 3, 227)，返回原图
+DCT特征提取失败: 
+DCT特征提取失败: 
+DCT特征提取失败: 
+DCT特征提取失败: 
+警告: 颜色变换结果形状异常 (224, 224, 3, 224)，返回原图
+DCT特征提取失败: 
+输入形状 - RGB: torch.Size([8, 3, 256, 256]), DCT: torch.Size([8, 63, 256, 256])
+RGB分支输出形状: 特征=torch.Size([8, 728, 16, 16]), 分割=torch.Size([8, 1, 256, 256])
+DCT分支输出形状: 特征=torch.Size([8, 728, 16, 16]), 分割=torch.Size([8, 1, 256, 256])
+HRNet未实现get_stage_features方法，使用模拟特征
+HRNet未实现get_stage_features方法，使用模拟特征
+RGB各阶段特征形状:
+  第1阶段: torch.Size([8, 32, 64, 64])
+  第2阶段: torch.Size([8, 64, 32, 32])
+  第3阶段: torch.Size([8, 128, 16, 16])
+  第4阶段: torch.Size([8, 256, 8, 8])
+DCT各阶段特征形状:
+  第1阶段: torch.Size([8, 32, 64, 64])
+  第2阶段: torch.Size([8, 64, 32, 32])
+  第3阶段: torch.Size([8, 128, 16, 16])
+  第4阶段: torch.Size([8, 256, 8, 8])
+处理第1阶段融合 - RGB: torch.Size([8, 32, 64, 64]), DCT: torch.Size([8, 32, 64, 64])
+ForensicAttentionFusion 输入形状 - RGB: torch.Size([8, 32, 64, 64]), 频域: torch.Size([8, 32, 64, 64])
+ForensicAttentionFusion 预期通道数: 32
+增强后特征形状 - RGB: torch.Size([8, 32, 64, 64]), 频域: torch.Size([8, 32, 64, 64])
+SelfMutualAttention 输入形状 - x1: torch.Size([8, 32, 64, 64]), x2: torch.Size([8, 32, 64, 64])
+多头注意力形状 - q: torch.Size([8, 4, 4096, 8]), k: torch.Size([8, 4, 4096, 8]), v: torch.Size([8, 4, 4096, 8])
+SelfMutualAttention 输入形状 - x1: torch.Size([8, 32, 64, 64]), x2: torch.Size([8, 32, 64, 64])
+多头注意力形状 - q: torch.Size([8, 4, 4096, 8]), k: torch.Size([8, 4, 4096, 8]), v: torch.Size([8, 4, 4096, 8])
+相互注意力后形状 - RGB: torch.Size([8, 32, 64, 64]), 频域: torch.Size([8, 32, 64, 64])
+边界增强后形状 - RGB: torch.Size([8, 32, 64, 64]), 频域: torch.Size([8, 32, 64, 64])
+特征融合后形状 - RGB: torch.Size([8, 32, 64, 64]), 频域: torch.Size([8, 32, 64, 64])
+加权融合后特征形状: torch.Size([8, 32, 64, 64])
+最终融合特征形状: torch.Size([8, 32, 64, 64])
+  融合后特征形状: torch.Size([8, 32, 64, 64])
+处理第2阶段融合 - RGB: torch.Size([8, 64, 32, 32]), DCT: torch.Size([8, 64, 32, 32])
+ForensicAttentionFusion 输入形状 - RGB: torch.Size([8, 64, 32, 32]), 频域: torch.Size([8, 64, 32, 32])
+ForensicAttentionFusion 预期通道数: 64
+增强后特征形状 - RGB: torch.Size([8, 64, 32, 32]), 频域: torch.Size([8, 64, 32, 32])
+SelfMutualAttention 输入形状 - x1: torch.Size([8, 64, 32, 32]), x2: torch.Size([8, 64, 32, 32])
+多头注意力形状 - q: torch.Size([8, 4, 1024, 16]), k: torch.Size([8, 4, 1024, 16]), v: torch.Size([8, 4, 1024, 16])
+SelfMutualAttention 输入形状 - x1: torch.Size([8, 64, 32, 32]), x2: torch.Size([8, 64, 32, 32])
+多头注意力形状 - q: torch.Size([8, 4, 1024, 16]), k: torch.Size([8, 4, 1024, 16]), v: torch.Size([8, 4, 1024, 16])
+相互注意力后形状 - RGB: torch.Size([8, 64, 32, 32]), 频域: torch.Size([8, 64, 32, 32])
+边界增强后形状 - RGB: torch.Size([8, 64, 32, 32]), 频域: torch.Size([8, 64, 32, 32])
+特征融合后形状 - RGB: torch.Size([8, 64, 32, 32]), 频域: torch.Size([8, 64, 32, 32])
+加权融合后特征形状: torch.Size([8, 64, 32, 32])
+最终融合特征形状: torch.Size([8, 64, 32, 32])
+  融合后特征形状: torch.Size([8, 64, 32, 32])
+  调整融合特征从 torch.Size([32, 32]) 到 torch.Size([64, 64])
+处理第3阶段融合 - RGB: torch.Size([8, 128, 16, 16]), DCT: torch.Size([8, 128, 16, 16])
+ForensicAttentionFusion 输入形状 - RGB: torch.Size([8, 128, 16, 16]), 频域: torch.Size([8, 128, 16, 16])
+ForensicAttentionFusion 预期通道数: 128
+增强后特征形状 - RGB: torch.Size([8, 128, 16, 16]), 频域: torch.Size([8, 128, 16, 16])
+SelfMutualAttention 输入形状 - x1: torch.Size([8, 128, 16, 16]), x2: torch.Size([8, 128, 16, 16])
+多头注意力形状 - q: torch.Size([8, 4, 256, 32]), k: torch.Size([8, 4, 256, 32]), v: torch.Size([8, 4, 256, 32])
+SelfMutualAttention 输入形状 - x1: torch.Size([8, 128, 16, 16]), x2: torch.Size([8, 128, 16, 16])
+多头注意力形状 - q: torch.Size([8, 4, 256, 32]), k: torch.Size([8, 4, 256, 32]), v: torch.Size([8, 4, 256, 32])
+相互注意力后形状 - RGB: torch.Size([8, 128, 16, 16]), 频域: torch.Size([8, 128, 16, 16])
+边界增强后形状 - RGB: torch.Size([8, 128, 16, 16]), 频域: torch.Size([8, 128, 16, 16])
+特征融合后形状 - RGB: torch.Size([8, 128, 16, 16]), 频域: torch.Size([8, 128, 16, 16])
+加权融合后特征形状: torch.Size([8, 128, 16, 16])
+最终融合特征形状: torch.Size([8, 128, 16, 16])
+  融合后特征形状: torch.Size([8, 128, 16, 16])
+  调整融合特征从 torch.Size([16, 16]) 到 torch.Size([64, 64])
+处理第4阶段融合 - RGB: torch.Size([8, 256, 8, 8]), DCT: torch.Size([8, 256, 8, 8])
+ForensicAttentionFusion 输入形状 - RGB: torch.Size([8, 256, 8, 8]), 频域: torch.Size([8, 256, 8, 8])
+ForensicAttentionFusion 预期通道数: 256
+增强后特征形状 - RGB: torch.Size([8, 256, 8, 8]), 频域: torch.Size([8, 256, 8, 8])
+SelfMutualAttention 输入形状 - x1: torch.Size([8, 256, 8, 8]), x2: torch.Size([8, 256, 8, 8])
+多头注意力形状 - q: torch.Size([8, 4, 64, 64]), k: torch.Size([8, 4, 64, 64]), v: torch.Size([8, 4, 64, 64])
+SelfMutualAttention 输入形状 - x1: torch.Size([8, 256, 8, 8]), x2: torch.Size([8, 256, 8, 8])
+多头注意力形状 - q: torch.Size([8, 4, 64, 64]), k: torch.Size([8, 4, 64, 64]), v: torch.Size([8, 4, 64, 64])
+相互注意力后形状 - RGB: torch.Size([8, 256, 8, 8]), 频域: torch.Size([8, 256, 8, 8])
+边界增强后形状 - RGB: torch.Size([8, 256, 8, 8]), 频域: torch.Size([8, 256, 8, 8])
+特征融合后形状 - RGB: torch.Size([8, 256, 8, 8]), 频域: torch.Size([8, 256, 8, 8])
+加权融合后特征形状: torch.Size([8, 256, 8, 8])
+最终融合特征形状: torch.Size([8, 256, 8, 8])
+  融合后特征形状: torch.Size([8, 256, 8, 8])
+  调整融合特征从 torch.Size([8, 8]) 到 torch.Size([64, 64])
+检查融合特征的空间尺寸一致性:
+  特征 1 形状: torch.Size([8, 32, 64, 64])
+  特征 2 形状: torch.Size([8, 64, 64, 64])
+  特征 3 形状: torch.Size([8, 128, 64, 64])
+  特征 4 形状: torch.Size([8, 256, 64, 64])
+合并特征形状: torch.Size([8, 480, 64, 64])
+最终融合前通道数 - RGB: 728, DCT: 728
+最终融合层预期通道数: 928
+最终融合层预期通道数: 928
+最终融合: RGB特征通道不匹配，适配从 728 到 928
+RGB特征通道适配后: torch.Size([8, 928, 16, 16])
+最终融合: DCT特征通道不匹配，适配从 728 到 928
+DCT特征通道适配后: torch.Size([8, 928, 16, 16])
+ForensicAttentionFusion 输入形状 - RGB: torch.Size([8, 928, 16, 16]), 频域: torch.Size([8, 928, 16, 16])
+ForensicAttentionFusion 预期通道数: 928
+增强后特征形状 - RGB: torch.Size([8, 928, 16, 16]), 频域: torch.Size([8, 928, 16, 16])
+SelfMutualAttention 输入形状 - x1: torch.Size([8, 928, 16, 16]), x2: torch.Size([8, 928, 16, 16])
+多头注意力形状 - q: torch.Size([8, 8, 256, 116]), k: torch.Size([8, 8, 256, 116]), v: torch.Size([8, 8, 256, 116])
+SelfMutualAttention 输入形状 - x1: torch.Size([8, 928, 16, 16]), x2: torch.Size([8, 928, 16, 16])
+多头注意力形状 - q: torch.Size([8, 8, 256, 116]), k: torch.Size([8, 8, 256, 116]), v: torch.Size([8, 8, 256, 116])
+相互注意力后形状 - RGB: torch.Size([8, 928, 16, 16]), 频域: torch.Size([8, 928, 16, 16])
+边界增强后形状 - RGB: torch.Size([8, 928, 16, 16]), 频域: torch.Size([8, 928, 16, 16])
+特征融合后形状 - RGB: torch.Size([8, 928, 16, 16]), 频域: torch.Size([8, 928, 16, 16])
+加权融合后特征形状: torch.Size([8, 928, 16, 16])
+最终融合特征形状: torch.Size([8, 928, 16, 16])
+最终融合特征形状: torch.Size([8, 928, 16, 16])
+添加全局平均池化层
+分类输出形状: torch.Size([8, 2])
+掩码头输入: 形状=torch.Size([8, 928, 16, 16]), 预期通道数=928
+掩码输出形状: torch.Size([8, 1, 256, 256])
+计算分类损失错误: Expected all tensors to be on the same device, but found at least two devices, cuda:0 and cpu! (when checking argument for argument weight in method wrapper_CUDA_nll_loss_forward)
